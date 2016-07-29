@@ -2,10 +2,10 @@
 
 ## Preamble
 
-This  project is  derived from  WinFsp  sources which  is Copyright  (c)
-2015-2016,  Bill  Zissimopoulos  and  licensed  under  the  AGPLv3.  The
-original  author (Bill  Zissimopoulos) and  copyright holder  explicitly
-relicenses the files in this project under the BSD 2-clause license.
+This project is  derived from WinFsp, which is  Copyright (c) 2015-2016,
+Bill Zissimopoulos  and licensed under  the AGPLv3. The  original author
+(Bill  Zissimopoulos) and  copyright  holder  explicitly relicenses  the
+files in this project under the BSD 2-clause license.
 
 In   addition  the   original  author   and  copyright   holder  assigns
 maintainership of this project to Mark Geisert.
