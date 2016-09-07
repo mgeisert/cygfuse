@@ -1,12 +1,12 @@
-NAME="fuse"
+NAME="cygfuse"
 VERSION=2.8
-RELEASE=4
+RELEASE=1
 CATEGORY="Utils"
-SUMMARY="WinFsp-FUSE compatibility layer"
-DESCRIPTION="WinFsp-FUSE enables FUSE file systems to be run on Cygwin."
-HOMEPAGE="http://www.secfs.net/winfsp/"
+SUMMARY="FUSE compatibility layer"
+DESCRIPTION="Cygfuse enables FUSE file systems to be run on Cygwin."
+HOMEPAGE="https://github.com/mgeisert/cygfuse"
 
-SRC_URI=${CYGPORT_SRC_URI:-"https://github.com/billziss-gh/cygfuse/archive/master.tar.gz"}
+SRC_URI=${CYGPORT_SRC_URI:-"https://github.com/mgeisert/cygfuse/archive/master.tar.gz"}
 SRC_DIR=${CYGPORT_SRC_DIR:-cygfuse-master}
 
 src_compile()
@@ -29,7 +29,7 @@ src_install()
     dobin cygfuse-${VERSION}.dll
     dolib libfuse-${VERSION}.dll.a
     dosym libfuse-${VERSION}.dll.a /usr/lib/libfuse.dll.a
-    dopkgconfig fuse.pc
+    dopkgconfig cygfuse.pc
 }
 
 RESTRICT="strip postinst-doc"
