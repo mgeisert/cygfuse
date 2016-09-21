@@ -2,8 +2,8 @@ prefix=/usr
 incdir=${prefix}/include/fuse
 
 Name: fuse
-Description: WinFsp FUSE compatible API
+Description: FUSE compatibility layer
 Version: @Version@
-URL: http://www.secfs.net/winfsp/
+URL: https://github.com/mgeisert/cygfuse/
 Libs: -lfuse-@Version@
 Cflags: -I"${incdir}" -DCYGFUSE
