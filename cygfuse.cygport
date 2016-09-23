@@ -61,7 +61,7 @@ src_install()
     dobin cygfuse-${VERSION}.dll
     dolib libfuse-${VERSION}.dll.a
     dosym libfuse-${VERSION}.dll.a /usr/lib/libfuse.dll.a
-    dopkgconfig cygfuse.pc
+    dopkgconfig fuse.pc
 }
 
 RESTRICT="strip postinst-doc"
