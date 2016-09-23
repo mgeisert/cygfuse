@@ -79,6 +79,7 @@
 #define FSP_FUSE_API_INIT_NOSYM(n)\
     pfn_ ## n = fsp_ ## n
 
+
 /*
  * The WinFsp-FUSE environment.
  *

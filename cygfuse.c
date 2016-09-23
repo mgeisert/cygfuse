@@ -44,10 +44,34 @@
 
 #include "cygfuse-internal.h"
 
+
+/*
+ * FUSE API implementation.
+ *
+ * We use a "trampoline" idea where all FUSE API calls get forwarded to the
+ * appropriate implementation through a function pointer. This function
+ * pointer is set up to point to a default implementation when the program
+ * first starts. The default implementation calls cygfuse_init and then goes
+ * back and calls the corresponding function pointer again. The expectation
+ * is that cygfuse_init has set up things properly so that the function
+ * pointer now points to the real FUSE API implementation.
+ *
+ * Subsequent calls to a FUSE API will now see a pointer to the real FUSE API
+ * implementation and will circumvent calls to cygfuse_init.
+ */
+
+/* CYGFUSE_API_IMPL* macros: they forward calls to a specific FUSE impl */
 #define CYGFUSE_API_IMPL(RET, API, PARAMS, ARGS)\
     static RET dfl_ ## API PARAMS;\
     RET (*pfn_ ## API) PARAMS = dfl_ ## API;\
-    static RET dfl_ ## API PARAMS { cygfuse_init(0); return pfn_ ## API ARGS; }\
+    static RET dfl_ ## API PARAMS\
+    {\
+        cygfuse_init(0);\
+        if (dfl_ ## API == pfn_ ## API)\
+            cygfuse_fail("cygfuse: %s FUSE API initialization failed.\n",\
+                #API);\
+        return pfn_ ## API ARGS;\
+    }\
     __attribute__ ((visibility("default"))) RET API PARAMS { return pfn_ ## API ARGS; }
 
 /* fuse_common.h */
@@ -142,6 +166,11 @@ CYGFUSE_API_IMPL(int, fuse_opt_add_opt_escaped,
 CYGFUSE_API_IMPL(int, fuse_opt_match,
     (const struct fuse_opt opts[], const char *opt),
     (opts, opt))
+
+
+/*
+ * Cygfuse init/fail.
+ */
 
 static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
