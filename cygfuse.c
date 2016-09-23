@@ -44,25 +44,35 @@
 #include <unistd.h>
 #include <sys/cygwin.h>
 
-/* Add FUSE implementation initializers here. */
 static void *cygfuse_init_winfsp();
 static void *cygfuse_init_dokany();
+/* Add FUSE provider initializer names above this line. */
+
 static void *cygfuse_init_fail();
 
 static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
-static char *fuse_variant = NULL;
+static char *fuse_provider = NULL;
 
-/* Add short names of supported FUSE implementations here. */
-#define WINFSP  "WinFSP"
-#define DOKANY  "Dokany"
+struct provider_t {
+    char	*name;
+    void	*(*initializer)();
+} providers[] = {
+    {"WinFSP",	cygfuse_init_winfsp},
+    {"Dokany",	cygfuse_init_dokany},
+/* Add descriptions of supported FUSE providers above this line. */
+};
+
+static int num_providers = sizeof(providers) / sizeof(providers[0]);
 
 static inline void cygfuse_init(int force)
 {
-    fuse_variant = getenv("CYGFUSE");
+    fuse_provider = getenv("CYGFUSE");
 
-    if (!fuse_variant)
+    if (!fuse_provider)
     {
+	//FIXME if provider existence was testable, need not fail here...
+	//FIXME for example if only one provider exists, could use it.
         fprintf(stderr, "cygfuse: environment variable CYGFUSE is not set\n");
         exit(1);
     }
@@ -70,11 +80,13 @@ static inline void cygfuse_init(int force)
     pthread_mutex_lock(&cygfuse_mutex);
     if (force || 0 == cygfuse_handle)
     {
-        /* Add call to additional FUSE implementation initializers here. */
-        if (0 == strncasecmp(fuse_variant, WINFSP, strlen(WINFSP)))
-            cygfuse_handle = cygfuse_init_winfsp();
-        else if (0 == strncasecmp(fuse_variant, DOKANY, strlen(DOKANY)))
-            cygfuse_handle = cygfuse_init_dokany();
+	for (int i = 0; i < num_providers; i++)
+	    if (0 == strncasecmp(fuse_provider,
+				 providers[i].name, sizeof(providers[i].name)))
+	    {
+		cygfuse_handle = providers[i].initializer();
+		break;
+	    }
     }
     pthread_mutex_unlock(&cygfuse_mutex);
 
@@ -85,24 +97,25 @@ static inline void cygfuse_init(int force)
 /*
  * Unfortunately Cygwin fork is very fragile and cannot even correctly
  * handle dlopen'ed DLL's if they are native (rather than Cygwin ones).
- * [MG:] Cygwin doesn't expect non-Cygwin DLLs to be present.  That's
- * likely a design choice but could arguably be considered a bug.  A fix
- * would depend on the bug being reported to the main mailing list.
+ * [MG: Cygwin doesn't expect non-Cygwin DLLs to be present in the process
+ * address space.  That's likely just a design consequence but could
+ * arguably be considered a bug.  A fix would depend on the bug being
+ * reported to the main Cygwin mailing list.]
  *
  * So we have this very nasty hack where we reset the dlopen'ed handle
  * immediately after daemonization. This will force cygfuse_init() to
  * reload the WinFsp DLL and reset all API pointers in the daemonized
  * process.
- * [MG:] pthread_atfork() could be used for child reinitialization after
+ * [MG: pthread_atfork() could be used for child reinitialization after
  * fork().  No pthreads need be involved to use this API.  This is how
- * Cygwin apps deal with the situation.
+ * Cygwin apps deal with the situation.]
  */
 static inline int cygfuse_daemon(int nochdir, int noclose)
 {
     if (-1 == daemon(nochdir, noclose))
         return -1;
 
-    /* force reload of FUSE implementation DLL to workaround fork() problems */
+    /* force reload of FUSE provider DLL to workaround fork() problems */
     cygfuse_init(1);
 
     return 0;
@@ -205,7 +218,7 @@ static void *cygfuse_init_dokany()
 
 static void *cygfuse_init_fail()
 {
-    fprintf(stderr, "cygfuse: %s FUSE DLL initialization failed.\n",
-            fuse_variant);
+    fprintf(stderr, "cygfuse: %s FUSE DLL initialization failed\n",
+            fuse_provider);
     exit(1);
 }
