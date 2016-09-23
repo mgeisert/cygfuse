@@ -1,4 +1,6 @@
 Version = $(shell sed -n '/^VERSION=/s/VERSION=\(.*\)/\1/p' cygfuse.cygport)
+Release = $(shell sed -n '/^RELEASE=/s/RELEASE=\(.*\)/\1/p' cygfuse.cygport)
+Arch = $(shell uname -m)
 IncDir = ./inc/fuse
 Debug = -g
 
@@ -21,4 +23,8 @@ cygport:
 
 clean:
 	rm -f cygfuse-$(Version).dll fuse.pc libfuse-$(Version).dll.a
-	rm -f cygfuse-test.exe* cygfuse-work.tar.gz
+	rm -f cygfuse-test.exe* cygfuse-work.tar.gz release
+
+release:
+	make cygport
+	ln -s cygfuse-$(Version)-$(Release).$(Arch)/dist/cygfuse release
