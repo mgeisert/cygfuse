@@ -36,15 +36,14 @@
 #ifndef CYGFUSE_H_
 #define CYGFUSE_H_
 
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
+/* include here all headers that libfuse2.8:fuse.h,fuse_common.h include */
 #include <fcntl.h>
-#include <pthread.h>
-#include <signal.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <sys/types.h>
+#include <sys/uio.h>
+#include <time.h>
 #include <utime.h>
 
 #ifdef __cplusplus
@@ -57,10 +56,8 @@ extern "C" {
  * within the same OS. This is certainly true on Windows, where these types
  * are not even native.
  *
- * For this reason we will define our own fuse_* types which represent the
- * types as the WinFsp DLL expects to see them. We will define these types
- * to be compatible with the equivalent Cygwin types as we want WinFsp-FUSE
- * to be usable from Cygwin.
+ * For this reason we will define our own fuse_* types to be compatible with
+ * the equivalent Cygwin types.
  */
 
 #define fuse_uid_t                      uid_t
