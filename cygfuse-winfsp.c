@@ -56,6 +56,22 @@
     static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env);\
     CYGFUSE_API_IMPL_DEF(RET, API, (void), { return pfn_fsp_ ## API (fsp_fuse_env()); })
 
+/* fuse_common.h */
+CYGFUSE_API_IMPL_VOID(int, fuse_version)
+CYGFUSE_API_IMPL(struct fuse_chan *, fuse_mount,
+    (const char *mountpoint, struct fuse_args *args),
+    (mountpoint, args))
+CYGFUSE_API_IMPL(void, fuse_unmount,
+    (const char *mountpoint, struct fuse_chan *ch),
+    (mountpoint, ch))
+CYGFUSE_API_IMPL(int, fuse_parse_cmdline,
+    (struct fuse_args *args,
+        char **mountpoint, int *multithreaded, int *foreground),
+    (args, mountpoint, multithreaded, foreground))
+CYGFUSE_API_IMPL_DEF(void, fuse_pollhandle_destroy,
+    (struct fuse_pollhandle *ph),
+    {})
+
 /* fuse.h */
 CYGFUSE_API_IMPL(int, fuse_main_real,
     (int argc, char *argv[], const struct fuse_operations *ops, size_t opsize, void *data),
@@ -107,9 +123,9 @@ CYGFUSE_API_IMPL_DEF(struct fuse_session *, fuse_get_session,
     if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
         return 0;\
     else\
-        pfn_ ## n = fsp_ ## n;
+        pfn_ ## n = fsp_ ## n
 #define CYGFUSE_API_GET_NS(n)           \
-    pfn_ ## n = fsp_ ## n;
+    pfn_ ## n = fsp_ ## n
 
 #if 0
 /*
@@ -187,11 +203,11 @@ void *cygfuse_winfsp_init()
     //CYGFUSE_API_GET(h, fsp_fuse_signal_handler);
 
     /* fuse_common.h */
-    //CYGFUSE_API_GET(h, fsp_fuse_version);
-    //CYGFUSE_API_GET(h, fsp_fuse_mount);
-    //CYGFUSE_API_GET(h, fsp_fuse_unmount);
-    //CYGFUSE_API_GET(h, fsp_fuse_parse_cmdline);
-    //CYGFUSE_API_GET(h, fsp_fuse_ntstatus_from_errno);
+    CYGFUSE_API_GET(h, fuse_version);
+    CYGFUSE_API_GET(h, fuse_mount);
+    CYGFUSE_API_GET(h, fuse_unmount);
+    CYGFUSE_API_GET(h, fuse_parse_cmdline);
+    CYGFUSE_API_GET_NS(fuse_pollhandle_destroy);
 
     /* fuse.h */
     CYGFUSE_API_GET(h, fuse_main_real);

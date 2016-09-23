@@ -50,6 +50,24 @@
     static RET dfl_ ## API PARAMS { cygfuse_init(0); return pfn_ ## API ARGS; }\
     __attribute__ ((visibility("default"))) RET API PARAMS { return pfn_ ## API ARGS; }
 
+/* fuse_common.h */
+CYGFUSE_API_IMPL(int, fuse_version,
+    (void),
+    ())
+CYGFUSE_API_IMPL(struct fuse_chan *, fuse_mount,
+    (const char *mountpoint, struct fuse_args *args),
+    (mountpoint, args))
+CYGFUSE_API_IMPL(void, fuse_unmount,
+    (const char *mountpoint, struct fuse_chan *ch),
+    (mountpoint, ch))
+CYGFUSE_API_IMPL(int, fuse_parse_cmdline,
+    (struct fuse_args *args,
+        char **mountpoint, int *multithreaded, int *foreground),
+    (args, mountpoint, multithreaded, foreground))
+CYGFUSE_API_IMPL(void, fuse_pollhandle_destroy,
+    (struct fuse_pollhandle *ph),
+    (ph))
+
 /* fuse.h */
 CYGFUSE_API_IMPL(int, fuse_main_real,
     (int argc, char *argv[], const struct fuse_operations *ops, size_t opsize, void *data),
