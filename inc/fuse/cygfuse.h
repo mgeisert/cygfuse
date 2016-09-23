@@ -1,6 +1,5 @@
 /**
- * @file fuse/winfsp_fuse.h
- * WinFsp FUSE compatible API.
+ * @file fuse/cygfuse.h
  *
  * @copyright 2015-2016 Bill Zissimopoulos
  */
@@ -34,41 +33,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FUSE_WINFSP_FUSE_H_INCLUDED
-#define FUSE_WINFSP_FUSE_H_INCLUDED
+#ifndef CYGFUSE_H_
+#define CYGFUSE_H_
 
 #include <errno.h>
 #include <stdint.h>
-#if !defined(WINFSP_DLL_INTERNAL)
 #include <stdlib.h>
-#endif
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <sys/types.h>
+#include <utime.h>
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#if !defined(FSP_FUSE_API)
-#if defined(WINFSP_DLL_INTERNAL)
-#define FSP_FUSE_API                    __declspec(dllexport)
-#else
-#define FSP_FUSE_API                    __declspec(dllimport)
-#endif
-#endif
-
-#if !defined(FSP_FUSE_API_NAME)
-#define FSP_FUSE_API_NAME(n)            (n)
-#endif
-
-#if !defined(FSP_FUSE_API_CALL)
-#define FSP_FUSE_API_CALL(n)            (n)
-#endif
-
-#if !defined(FSP_FUSE_SYM)
-#if !defined(CYGFUSE)
-#define FSP_FUSE_SYM(proto, ...)        static inline proto { __VA_ARGS__ }
-#else
-#define FSP_FUSE_SYM(proto, ...)        proto;
-#endif
 #endif
 
 /*
@@ -82,121 +62,6 @@ extern "C" {
  * to be compatible with the equivalent Cygwin types as we want WinFsp-FUSE
  * to be usable from Cygwin.
  */
-
-#if defined(_WIN64) || defined(_WIN32)
-
-typedef uint32_t fuse_uid_t;
-typedef uint32_t fuse_gid_t;
-typedef int32_t fuse_pid_t;
-
-typedef uint32_t fuse_dev_t;
-typedef uint64_t fuse_ino_t;
-typedef uint32_t fuse_mode_t;
-typedef uint16_t fuse_nlink_t;
-typedef int64_t fuse_off_t;
-
-#if defined(_WIN64)
-typedef uint64_t fuse_fsblkcnt_t;
-typedef uint64_t fuse_fsfilcnt_t;
-#else
-typedef uint32_t fuse_fsblkcnt_t;
-typedef uint32_t fuse_fsfilcnt_t;
-#endif
-typedef int32_t fuse_blksize_t;
-typedef int64_t fuse_blkcnt_t;
-
-#if defined(_WIN64)
-struct fuse_utimbuf
-{
-    int64_t actime;
-    int64_t modtime;
-};
-struct fuse_timespec
-{
-    int64_t tv_sec;
-    int64_t tv_nsec;
-};
-#else
-struct fuse_utimbuf
-{
-    int32_t actime;
-    int32_t modtime;
-};
-struct fuse_timespec
-{
-    int32_t tv_sec;
-    int32_t tv_nsec;
-};
-#endif
-
-struct fuse_stat
-{
-    fuse_dev_t st_dev;
-    fuse_ino_t st_ino;
-    fuse_mode_t st_mode;
-    fuse_nlink_t st_nlink;
-    fuse_uid_t st_uid;
-    fuse_gid_t st_gid;
-    fuse_dev_t st_rdev;
-    fuse_off_t st_size;
-    struct fuse_timespec st_atim;
-    struct fuse_timespec st_mtim;
-    struct fuse_timespec st_ctim;
-    fuse_blksize_t st_blksize;
-    fuse_blkcnt_t st_blocks;
-    struct fuse_timespec st_birthtim;
-};
-
-#if defined(_WIN64)
-struct fuse_statvfs
-{
-    uint64_t f_bsize;
-    uint64_t f_frsize;
-    fuse_fsblkcnt_t f_blocks;
-    fuse_fsblkcnt_t f_bfree;
-    fuse_fsblkcnt_t f_bavail;
-    fuse_fsfilcnt_t f_files;
-    fuse_fsfilcnt_t f_ffree;
-    fuse_fsfilcnt_t f_favail;
-    uint64_t f_fsid;
-    uint64_t f_flag;
-    uint64_t f_namemax;
-};
-#else
-struct fuse_statvfs
-{
-    uint32_t f_bsize;
-    uint32_t f_frsize;
-    fuse_fsblkcnt_t f_blocks;
-    fuse_fsblkcnt_t f_bfree;
-    fuse_fsblkcnt_t f_bavail;
-    fuse_fsfilcnt_t f_files;
-    fuse_fsfilcnt_t f_ffree;
-    fuse_fsfilcnt_t f_favail;
-    uint32_t f_fsid;
-    uint32_t f_flag;
-    uint32_t f_namemax;
-};
-#endif
-
-struct fuse_flock
-{
-    int16_t l_type;
-    int16_t l_whence;
-    fuse_off_t l_start;
-    fuse_off_t l_len;
-    fuse_pid_t l_pid;
-};
-
-#elif defined(__CYGWIN__)
-
-#include <fcntl.h>
-#include <pthread.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <sys/statvfs.h>
-#include <sys/types.h>
-#include <utime.h>
 
 #define fuse_uid_t                      uid_t
 #define fuse_gid_t                      gid_t
@@ -224,10 +89,6 @@ struct fuse_flock
  * Note that long is 8 bytes long in Cygwin64 and 4 bytes long in Win64.
  * For this reason we avoid using long anywhere in these headers.
  */
-
-#else
-#error unsupported environment
-#endif
 
 #ifdef __cplusplus
 }

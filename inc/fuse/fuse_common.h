@@ -1,6 +1,5 @@
 /**
  * @file fuse/fuse_common.h
- * WinFsp FUSE compatible API.
  *
  * This file is derived from libfuse/include/fuse_common.h:
  *     FUSE: Filesystem in Userspace
@@ -41,7 +40,7 @@
 #ifndef FUSE_COMMON_H_
 #define FUSE_COMMON_H_
 
-#include "winfsp_fuse.h"
+#include "cygfuse.h"
 #include "fuse_opt.h"
 
 #ifdef __cplusplus

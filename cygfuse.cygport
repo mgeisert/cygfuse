@@ -55,7 +55,7 @@ src_install()
     doinclude fuse.h
     doinclude fuse_common.h
     doinclude fuse_opt.h
-    doinclude winfsp_fuse.h
+    doinclude cygfuse.h
 
     cd ${B}
     dobin cygfuse-${VERSION}.dll

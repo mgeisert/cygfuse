@@ -1,6 +1,5 @@
 /**
  * @file fuse/fuse_opt.h
- * WinFsp FUSE compatible API.
  *
  * This file is derived from libfuse/include/fuse_opt.h:
  *     FUSE: Filesystem in Userspace
