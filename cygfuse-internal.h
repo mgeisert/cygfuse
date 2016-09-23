@@ -40,13 +40,9 @@
 #include <fuse.h>
 #include <fuse_opt.h>
 
-/* Add short names of supported FUSE implementations here. */
-#define WINFSP                          "WinFSP"
-#define DOKANY                          "Dokany"
-
-/* Add FUSE implementation initializers here. */
 void *cygfuse_winfsp_init();
 void *cygfuse_dokany_init();
+/* Add FUSE provider initializer names above this line. */
 
 void cygfuse_init(int force);
 void cygfuse_fail(const char *fmt, ...);

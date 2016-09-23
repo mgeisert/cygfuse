@@ -174,7 +174,18 @@ CYGFUSE_API_IMPL(int, fuse_opt_match,
 
 static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
-static char *fuse_variant = NULL;
+static char *fuse_provider = NULL;
+
+struct provider_t {
+    char    *name;
+    void    *(*initializer)();
+} providers[] = {
+    {"WinFSP",  cygfuse_winfsp_init},
+    {"Dokany",  cygfuse_dokany_init},
+/* Add descriptions of supported FUSE providers above this line. */
+};
+
+static int num_providers = sizeof(providers) / sizeof(providers[0]);
 
 void cygfuse_init(int force)
 {
@@ -186,19 +197,21 @@ void cygfuse_init(int force)
     pthread_mutex_lock(&cygfuse_mutex);
     if (force || 0 == cygfuse_handle)
     {
-        fuse_variant = getenv("CYGFUSE");
-        if (!fuse_variant)
+        fuse_provider = getenv("CYGFUSE");
+        if (!fuse_provider)
             cygfuse_fail("cygfuse: environment variable CYGFUSE is not set\n");
 
-        /* Add call to additional FUSE implementation initializers here. */
-        if (0 == strncasecmp(fuse_variant, WINFSP, strlen(WINFSP)))
-            cygfuse_handle = cygfuse_winfsp_init();
-        else if (0 == strncasecmp(fuse_variant, DOKANY, strlen(DOKANY)))
-            cygfuse_handle = cygfuse_dokany_init();
+        for (int i = 0; i < num_providers; i++)
+            if (0 == strncasecmp(fuse_provider,
+                     providers[i].name, sizeof(providers[i].name)))
+            {
+                cygfuse_handle = providers[i].initializer();
+                break;
+            }
 
         if (0 == cygfuse_handle)
             cygfuse_fail("cygfuse: %s FUSE DLL initialization failed.\n",
-                fuse_variant);
+                fuse_provider);
     }
     pthread_mutex_unlock(&cygfuse_mutex);
 }
