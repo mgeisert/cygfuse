@@ -278,15 +278,15 @@ FSP_FUSE_API_IMPL(int, fuse_opt_match,
 #endif
 #define WINFSP_PATH                     "bin\\" WINFSP_NAME
 
-#define FSP_FUSE_API_GET(h, n)\
+#define FSP_FUSE_API_INIT(h, n)\
     if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
         return 0;\
     else\
         pfn_ ## n = fsp_ ## n
-#define FSP_FUSE_API_GET_DL(h, n)\
+#define FSP_FUSE_API_INIT_DLSYM(h, n)\
     if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
         return 0;
-#define FSP_FUSE_API_GET_NS(n)\
+#define FSP_FUSE_API_INIT_NOSYM(n)\
     pfn_ ## n = fsp_ ## n
 
 void *cygfuse_winfsp_init()
@@ -327,41 +327,41 @@ void *cygfuse_winfsp_init()
     }
 
     /* originally in winfsp_fuse.h */
-    FSP_FUSE_API_GET_DL(h, fuse_signal_handler);
+    FSP_FUSE_API_INIT_DLSYM(h, fuse_signal_handler);
 
     /* fuse_common.h */
-    FSP_FUSE_API_GET(h, fuse_version);
-    FSP_FUSE_API_GET(h, fuse_mount);
-    FSP_FUSE_API_GET(h, fuse_unmount);
-    FSP_FUSE_API_GET(h, fuse_parse_cmdline);
-    FSP_FUSE_API_GET_NS(fuse_pollhandle_destroy);
-    FSP_FUSE_API_GET_NS(fuse_daemonize);
-    FSP_FUSE_API_GET_NS(fuse_set_signal_handlers);
-    FSP_FUSE_API_GET_NS(fuse_remove_signal_handlers);
+    FSP_FUSE_API_INIT(h, fuse_version);
+    FSP_FUSE_API_INIT(h, fuse_mount);
+    FSP_FUSE_API_INIT(h, fuse_unmount);
+    FSP_FUSE_API_INIT(h, fuse_parse_cmdline);
+    FSP_FUSE_API_INIT_NOSYM(fuse_pollhandle_destroy);
+    FSP_FUSE_API_INIT_NOSYM(fuse_daemonize);
+    FSP_FUSE_API_INIT_NOSYM(fuse_set_signal_handlers);
+    FSP_FUSE_API_INIT_NOSYM(fuse_remove_signal_handlers);
 
     /* fuse.h */
-    FSP_FUSE_API_GET(h, fuse_main_real);
-    FSP_FUSE_API_GET(h, fuse_is_lib_option);
-    FSP_FUSE_API_GET(h, fuse_new);
-    FSP_FUSE_API_GET(h, fuse_destroy);
-    FSP_FUSE_API_GET(h, fuse_loop);
-    FSP_FUSE_API_GET(h, fuse_loop_mt);
-    FSP_FUSE_API_GET(h, fuse_exit);
-    FSP_FUSE_API_GET(h, fuse_get_context);
-    FSP_FUSE_API_GET_NS(fuse_getgroups);
-    FSP_FUSE_API_GET_NS(fuse_interrupted);
-    FSP_FUSE_API_GET_NS(fuse_invalidate);
-    FSP_FUSE_API_GET_NS(fuse_notify_poll);
-    FSP_FUSE_API_GET_NS(fuse_get_session);
+    FSP_FUSE_API_INIT(h, fuse_main_real);
+    FSP_FUSE_API_INIT(h, fuse_is_lib_option);
+    FSP_FUSE_API_INIT(h, fuse_new);
+    FSP_FUSE_API_INIT(h, fuse_destroy);
+    FSP_FUSE_API_INIT(h, fuse_loop);
+    FSP_FUSE_API_INIT(h, fuse_loop_mt);
+    FSP_FUSE_API_INIT(h, fuse_exit);
+    FSP_FUSE_API_INIT(h, fuse_get_context);
+    FSP_FUSE_API_INIT_NOSYM(fuse_getgroups);
+    FSP_FUSE_API_INIT_NOSYM(fuse_interrupted);
+    FSP_FUSE_API_INIT_NOSYM(fuse_invalidate);
+    FSP_FUSE_API_INIT_NOSYM(fuse_notify_poll);
+    FSP_FUSE_API_INIT_NOSYM(fuse_get_session);
 
     /* fuse_opt.h */
-    FSP_FUSE_API_GET(h, fuse_opt_parse);
-    FSP_FUSE_API_GET(h, fuse_opt_add_arg);
-    FSP_FUSE_API_GET(h, fuse_opt_insert_arg);
-    FSP_FUSE_API_GET(h, fuse_opt_free_args);
-    FSP_FUSE_API_GET(h, fuse_opt_add_opt);
-    FSP_FUSE_API_GET(h, fuse_opt_add_opt_escaped);
-    FSP_FUSE_API_GET(h, fuse_opt_match);
+    FSP_FUSE_API_INIT(h, fuse_opt_parse);
+    FSP_FUSE_API_INIT(h, fuse_opt_add_arg);
+    FSP_FUSE_API_INIT(h, fuse_opt_insert_arg);
+    FSP_FUSE_API_INIT(h, fuse_opt_free_args);
+    FSP_FUSE_API_INIT(h, fuse_opt_add_opt);
+    FSP_FUSE_API_INIT(h, fuse_opt_add_opt_escaped);
+    FSP_FUSE_API_INIT(h, fuse_opt_match);
 
     return h;
 }
