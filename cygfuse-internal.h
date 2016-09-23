@@ -36,6 +36,10 @@
  * Modified 2016 by Mark Geisert, designated cygfuse maintainer.
  */
 
+#include <fuse_common.h>
+#include <fuse.h>
+#include <fuse_opt.h>
+
 /* Add short names of supported FUSE implementations here. */
 #define WINFSP                          "WinFSP"
 #define DOKANY                          "Dokany"

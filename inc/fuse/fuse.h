@@ -120,116 +120,21 @@ struct fuse_context
 #define fuse_main(argc, argv, ops, data)\
     fuse_main_real(argc, argv, ops, sizeof *(ops), data)
 
-FSP_FUSE_API int FSP_FUSE_API_NAME(fsp_fuse_main_real)(struct fsp_fuse_env *env,
-    int argc, char *argv[],
-    const struct fuse_operations *ops, size_t opsize, void *data);
-FSP_FUSE_API int FSP_FUSE_API_NAME(fsp_fuse_is_lib_option)(struct fsp_fuse_env *env,
-    const char *opt);
-FSP_FUSE_API struct fuse *FSP_FUSE_API_NAME(fsp_fuse_new)(struct fsp_fuse_env *env,
-    struct fuse_chan *ch, struct fuse_args *args,
-    const struct fuse_operations *ops, size_t opsize, void *data);
-FSP_FUSE_API void FSP_FUSE_API_NAME(fsp_fuse_destroy)(struct fsp_fuse_env *env,
-    struct fuse *f);
-FSP_FUSE_API int FSP_FUSE_API_NAME(fsp_fuse_loop)(struct fsp_fuse_env *env,
-    struct fuse *f);
-FSP_FUSE_API int FSP_FUSE_API_NAME(fsp_fuse_loop_mt)(struct fsp_fuse_env *env,
-    struct fuse *f);
-FSP_FUSE_API void FSP_FUSE_API_NAME(fsp_fuse_exit)(struct fsp_fuse_env *env,
-    struct fuse *f);
-FSP_FUSE_API struct fuse_context *FSP_FUSE_API_NAME(fsp_fuse_get_context)(struct fsp_fuse_env *env);
-
-FSP_FUSE_SYM(
 int fuse_main_real(int argc, char *argv[],
-    const struct fuse_operations *ops, size_t opsize, void *data),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_main_real)
-        (fsp_fuse_env(), argc, argv, ops, opsize, data);
-})
-
-FSP_FUSE_SYM(
-int fuse_is_lib_option(const char *opt),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_is_lib_option)
-        (fsp_fuse_env(), opt);
-})
-
-FSP_FUSE_SYM(
+    const struct fuse_operations *ops, size_t opsize, void *data);
+int fuse_is_lib_option(const char *opt);
 struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
-    const struct fuse_operations *ops, size_t opsize, void *data),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_new)
-        (fsp_fuse_env(), ch, args, ops, opsize, data);
-})
-
-FSP_FUSE_SYM(
-void fuse_destroy(struct fuse *f),
-{
-    FSP_FUSE_API_CALL(fsp_fuse_destroy)
-        (fsp_fuse_env(), f);
-})
-
-FSP_FUSE_SYM(
-int fuse_loop(struct fuse *f),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_loop)
-        (fsp_fuse_env(), f);
-})
-
-FSP_FUSE_SYM(
-int fuse_loop_mt(struct fuse *f),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_loop_mt)
-        (fsp_fuse_env(), f);
-})
-
-FSP_FUSE_SYM(
-void fuse_exit(struct fuse *f),
-{
-    FSP_FUSE_API_CALL(fsp_fuse_exit)
-        (fsp_fuse_env(), f);
-})
-
-FSP_FUSE_SYM(
-struct fuse_context *fuse_get_context(void),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_get_context)
-        (fsp_fuse_env());
-})
-
-FSP_FUSE_SYM(
-int fuse_getgroups(int size, fuse_gid_t list[]),
-{
-    (void)size;
-    (void)list;
-    return -ENOSYS;
-})
-
-FSP_FUSE_SYM(
-int fuse_interrupted(void),
-{
-    return 0;
-})
-
-FSP_FUSE_SYM(
-int fuse_invalidate(struct fuse *f, const char *path),
-{
-    (void)f;
-    (void)path;
-    return -EINVAL;
-})
-
-FSP_FUSE_SYM(
-int fuse_notify_poll(struct fuse_pollhandle *ph),
-{
-    (void)ph;
-    return 0;
-})
-
-FSP_FUSE_SYM(
-struct fuse_session *fuse_get_session(struct fuse *f),
-{
-    return (struct fuse_session *)f;
-})
+    const struct fuse_operations *ops, size_t opsize, void *data);
+void fuse_destroy(struct fuse *f);
+int fuse_loop(struct fuse *f);
+int fuse_loop_mt(struct fuse *f);
+void fuse_exit(struct fuse *f);
+struct fuse_context *fuse_get_context(void);
+int fuse_getgroups(int size, fuse_gid_t list[]);
+int fuse_interrupted(void);
+int fuse_invalidate(struct fuse *f, const char *path);
+int fuse_notify_poll(struct fuse_pollhandle *ph);
+struct fuse_session *fuse_get_session(struct fuse *f);
 
 #ifdef __cplusplus
 }

@@ -44,6 +44,54 @@
 
 #include "cygfuse-internal.h"
 
+#define CYGFUSE_API_IMPL(RET, API, PARAMS, ARGS)\
+    static RET dfl_ ## API PARAMS;\
+    RET (*pfn_ ## API) PARAMS = dfl_ ## API;\
+    static RET dfl_ ## API PARAMS { cygfuse_init(0); return pfn_ ## API ARGS; }\
+    __attribute__ ((visibility("default"))) RET API PARAMS { return pfn_ ## API ARGS; }
+
+/* fuse.h */
+CYGFUSE_API_IMPL(int, fuse_main_real,
+    (int argc, char *argv[], const struct fuse_operations *ops, size_t opsize, void *data),
+    (argc, argv, ops, opsize, data))
+CYGFUSE_API_IMPL(int, fuse_is_lib_option,
+    (const char *opt),
+    (opt))
+CYGFUSE_API_IMPL(struct fuse *, fuse_new,
+    (struct fuse_chan *ch, struct fuse_args *args,
+        const struct fuse_operations *ops, size_t opsize, void *data),
+    (ch, args, ops, opsize, data))
+CYGFUSE_API_IMPL(void, fuse_destroy,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(int, fuse_loop,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(int, fuse_loop_mt,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(void, fuse_exit,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(struct fuse_context *, fuse_get_context,
+    (void),
+    ())
+CYGFUSE_API_IMPL(int, fuse_getgroups,
+    (int size, fuse_gid_t list[]),
+    (size, list))
+CYGFUSE_API_IMPL(int, fuse_interrupted,
+    (void),
+    ())
+CYGFUSE_API_IMPL(int, fuse_invalidate,
+    (struct fuse *f, const char *path),
+    (f, path))
+CYGFUSE_API_IMPL(int, fuse_notify_poll,
+    (struct fuse_pollhandle *ph),
+    (ph))
+CYGFUSE_API_IMPL(struct fuse_session *, fuse_get_session,
+    (struct fuse *f),
+    (f))
+
 static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
 static char *fuse_variant = NULL;

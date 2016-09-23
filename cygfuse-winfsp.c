@@ -37,12 +37,81 @@
  */
 
 #include <dlfcn.h>
+#include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/cygwin.h>
 
 #include "cygfuse-internal.h"
 
+#define REMOVE_PARENS(...)              __VA_ARGS__
+#define CYGFUSE_API_IMPL_DEF(RET, API, PARAMS, ...)\
+    static RET fsp_ ## API PARAMS __VA_ARGS__\
+    extern RET (*pfn_ ## API) PARAMS;
+#define CYGFUSE_API_IMPL(RET, API, PARAMS, ARGS)\
+    static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env, REMOVE_PARENS PARAMS);\
+    CYGFUSE_API_IMPL_DEF(RET, API, PARAMS, { return pfn_fsp_ ## API (fsp_fuse_env(), REMOVE_PARENS ARGS); })
+#define CYGFUSE_API_IMPL_VOID(RET, API)\
+    static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env);\
+    CYGFUSE_API_IMPL_DEF(RET, API, (void), { return pfn_fsp_ ## API (fsp_fuse_env()); })
+
+/* fuse.h */
+CYGFUSE_API_IMPL(int, fuse_main_real,
+    (int argc, char *argv[], const struct fuse_operations *ops, size_t opsize, void *data),
+    (argc, argv, ops, opsize, data))
+CYGFUSE_API_IMPL(int, fuse_is_lib_option,
+    (const char *opt),
+    (opt))
+CYGFUSE_API_IMPL(struct fuse *, fuse_new,
+    (struct fuse_chan *ch, struct fuse_args *args,
+        const struct fuse_operations *ops, size_t opsize, void *data),
+    (ch, args, ops, opsize, data))
+CYGFUSE_API_IMPL(void, fuse_destroy,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(int, fuse_loop,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(int, fuse_loop_mt,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(void, fuse_exit,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL_VOID(struct fuse_context *, fuse_get_context)
+CYGFUSE_API_IMPL_DEF(int, fuse_getgroups,
+    (int size, fuse_gid_t list[]),
+    { return -ENOSYS; })
+CYGFUSE_API_IMPL_DEF(int, fuse_interrupted,
+    (void),
+    { return 0; })
+CYGFUSE_API_IMPL_DEF(int, fuse_invalidate,
+    (struct fuse *f, const char *path),
+    { return -EINVAL; })
+CYGFUSE_API_IMPL_DEF(int, fuse_notify_poll,
+    (struct fuse_pollhandle *ph),
+    { return 0; })
+CYGFUSE_API_IMPL_DEF(struct fuse_session *, fuse_get_session,
+    (struct fuse *f),
+    { return (struct fuse_session *)f; })
+
+#if defined(__LP64__)
+#define CYGFUSE_WINFSP_NAME             "winfsp-x64.dll"
+#else
+#define CYGFUSE_WINFSP_NAME             "winfsp-x86.dll"
+#endif
+#define CYGFUSE_WINFSP_PATH             "bin\\" CYGFUSE_WINFSP_NAME
+
+#define CYGFUSE_API_GET(h, n)           \
+    if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
+        return 0;\
+    else\
+        pfn_ ## n = fsp_ ## n;
+#define CYGFUSE_API_GET_NS(n)           \
+    pfn_ ## n = fsp_ ## n;
+
+#if 0
 /*
  * Unfortunately Cygwin fork is very fragile and cannot even correctly
  * handle dlopen'ed DLL's if they are native (rather than Cygwin ones).
@@ -75,20 +144,7 @@ static inline int cygfuse_daemon(int nochdir, int noclose)
 #define FSP_FUSE_API_CALL(api)          (cygfuse_init(0), pfn_ ## api)
 #define FSP_FUSE_SYM(proto, ...)        \
     __attribute__ ((visibility("default"))) proto { __VA_ARGS__ }
-#include <fuse_common.h>
-#include <fuse.h>
-#include <fuse_opt.h>
-
-#if defined(__LP64__)
-#define CYGFUSE_WINFSP_NAME             "winfsp-x64.dll"
-#else
-#define CYGFUSE_WINFSP_NAME             "winfsp-x86.dll"
 #endif
-
-#define CYGFUSE_WINFSP_PATH             "bin\\" CYGFUSE_WINFSP_NAME
-#define CYGFUSE_GET_API(h, n)           \
-    if (0 == (*(void **)&(pfn_ ## n) = dlsym(h, #n)))\
-        return 0;
 
 void *cygfuse_winfsp_init()
 {
@@ -128,33 +184,38 @@ void *cygfuse_winfsp_init()
     }
 
     /* winfsp_fuse.h */
-    CYGFUSE_GET_API(h, fsp_fuse_signal_handler);
+    //CYGFUSE_API_GET(h, fsp_fuse_signal_handler);
 
     /* fuse_common.h */
-    CYGFUSE_GET_API(h, fsp_fuse_version);
-    CYGFUSE_GET_API(h, fsp_fuse_mount);
-    CYGFUSE_GET_API(h, fsp_fuse_unmount);
-    CYGFUSE_GET_API(h, fsp_fuse_parse_cmdline);
-    CYGFUSE_GET_API(h, fsp_fuse_ntstatus_from_errno);
+    //CYGFUSE_API_GET(h, fsp_fuse_version);
+    //CYGFUSE_API_GET(h, fsp_fuse_mount);
+    //CYGFUSE_API_GET(h, fsp_fuse_unmount);
+    //CYGFUSE_API_GET(h, fsp_fuse_parse_cmdline);
+    //CYGFUSE_API_GET(h, fsp_fuse_ntstatus_from_errno);
 
     /* fuse.h */
-    CYGFUSE_GET_API(h, fsp_fuse_main_real);
-    CYGFUSE_GET_API(h, fsp_fuse_is_lib_option);
-    CYGFUSE_GET_API(h, fsp_fuse_new);
-    CYGFUSE_GET_API(h, fsp_fuse_destroy);
-    CYGFUSE_GET_API(h, fsp_fuse_loop);
-    CYGFUSE_GET_API(h, fsp_fuse_loop_mt);
-    CYGFUSE_GET_API(h, fsp_fuse_exit);
-    CYGFUSE_GET_API(h, fsp_fuse_get_context);
+    CYGFUSE_API_GET(h, fuse_main_real);
+    CYGFUSE_API_GET(h, fuse_is_lib_option);
+    CYGFUSE_API_GET(h, fuse_new);
+    CYGFUSE_API_GET(h, fuse_destroy);
+    CYGFUSE_API_GET(h, fuse_loop);
+    CYGFUSE_API_GET(h, fuse_loop_mt);
+    CYGFUSE_API_GET(h, fuse_exit);
+    CYGFUSE_API_GET(h, fuse_get_context);
+    CYGFUSE_API_GET_NS(fuse_getgroups);
+    CYGFUSE_API_GET_NS(fuse_interrupted);
+    CYGFUSE_API_GET_NS(fuse_invalidate);
+    CYGFUSE_API_GET_NS(fuse_notify_poll);
+    CYGFUSE_API_GET_NS(fuse_get_session);
 
     /* fuse_opt.h */
-    CYGFUSE_GET_API(h, fsp_fuse_opt_parse);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_add_arg);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_insert_arg);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_free_args);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_add_opt);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_add_opt_escaped);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_match);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_parse);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_add_arg);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_insert_arg);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_free_args);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_add_opt);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_add_opt_escaped);
+    //CYGFUSE_API_GET(h, fsp_fuse_opt_match);
 
     return h;
 }
