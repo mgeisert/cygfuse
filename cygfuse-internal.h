@@ -36,9 +36,13 @@
  * Modified 2016 by Mark Geisert, designated cygfuse maintainer.
  */
 
-void cygfuse_init(int force);
-void *cygfuse_init_fail();
+/* Add short names of supported FUSE implementations here. */
+#define WINFSP                          "WinFSP"
+#define DOKANY                          "Dokany"
 
 /* Add FUSE implementation initializers here. */
 void *cygfuse_init_winfsp();
 void *cygfuse_init_dokany();
+
+void cygfuse_init(int force);
+void cygfuse_fail(const char *fmt, ...);

@@ -36,12 +36,12 @@
  * Modified 2016 by Mark Geisert, designated cygfuse maintainer.
  */
 
-#include "cygfuse-internal.h"
-
 #include <dlfcn.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/cygwin.h>
+
+#include "cygfuse-internal.h"
 
 /*
  * Unfortunately Cygwin fork is very fragile and cannot even correctly
@@ -88,7 +88,7 @@ static inline int cygfuse_daemon(int nochdir, int noclose)
 #define CYGFUSE_WINFSP_PATH             "bin\\" CYGFUSE_WINFSP_NAME
 #define CYGFUSE_GET_API(h, n)           \
     if (0 == (*(void **)&(pfn_ ## n) = dlsym(h, #n)))\
-        return cygfuse_init_fail();
+        return 0;
 
 void *cygfuse_init_winfsp()
 {
@@ -103,13 +103,13 @@ void *cygfuse_init_winfsp()
         regfd = open("/proc/registry32/HKEY_LOCAL_MACHINE"
                      "/Software/WinFsp/InstallDir", O_RDONLY);
         if (-1 == regfd)
-            return cygfuse_init_fail();
+            return 0;
 
         bytes = read(regfd, winpath,
                      sizeof winpath - sizeof CYGFUSE_WINFSP_PATH);
         close(regfd);
         if (-1 == bytes || 0 == bytes)
-            return cygfuse_init_fail();
+            return 0;
 
         if ('\0' == winpath[bytes - 1])
             bytes--;
@@ -119,12 +119,12 @@ void *cygfuse_init_winfsp()
         psxpath = (char *)
             cygwin_create_path(CCP_WIN_A_TO_POSIX | CCP_PROC_CYGDRIVE, winpath);
         if (0 == psxpath)
-            return cygfuse_init_fail();
+            return 0;
 
         h = dlopen(psxpath, RTLD_NOW);
         free(psxpath);
         if (0 == h)
-            return cygfuse_init_fail();
+            return 0;
     }
 
     /* winfsp_fuse.h */

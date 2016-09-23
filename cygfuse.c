@@ -37,6 +37,7 @@
  */
 
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,19 +48,11 @@ static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
 static char *fuse_variant = NULL;
 
-/* Add short names of supported FUSE implementations here. */
-#define WINFSP  "WinFSP"
-#define DOKANY  "Dokany"
-
 void cygfuse_init(int force)
 {
     fuse_variant = getenv("CYGFUSE");
-
     if (!fuse_variant)
-    {
-        fprintf(stderr, "cygfuse: environment variable CYGFUSE is not set\n");
-        exit(1);
-    }
+        cygfuse_fail("cygfuse: environment variable CYGFUSE is not set\n");
 
     pthread_mutex_lock(&cygfuse_mutex);
     if (force || 0 == cygfuse_handle)
@@ -71,15 +64,17 @@ void cygfuse_init(int force)
             cygfuse_handle = cygfuse_init_dokany();
 
         if (0 == cygfuse_handle)
-            cygfuse_init_fail();
+            cygfuse_fail("cygfuse: %s FUSE DLL initialization failed.\n",
+                fuse_variant);
     }
     pthread_mutex_unlock(&cygfuse_mutex);
 }
 
-void *cygfuse_init_fail()
+void cygfuse_fail(const char *fmt, ...)
 {
-    fprintf(stderr, "cygfuse: %s FUSE DLL initialization failed.\n",
-            fuse_variant);
-    exit(1);
-    return 0;
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
 }
