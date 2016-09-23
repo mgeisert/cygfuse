@@ -59,9 +59,9 @@ void cygfuse_init(int force)
     {
         /* Add call to additional FUSE implementation initializers here. */
         if (0 == strncasecmp(fuse_variant, WINFSP, strlen(WINFSP)))
-            cygfuse_handle = cygfuse_init_winfsp();
+            cygfuse_handle = cygfuse_winfsp_init();
         else if (0 == strncasecmp(fuse_variant, DOKANY, strlen(DOKANY)))
-            cygfuse_handle = cygfuse_init_dokany();
+            cygfuse_handle = cygfuse_dokany_init();
 
         if (0 == cygfuse_handle)
             cygfuse_fail("cygfuse: %s FUSE DLL initialization failed.\n",

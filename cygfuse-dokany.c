@@ -38,7 +38,7 @@
 
 #include "cygfuse-internal.h"
 
-void *cygfuse_init_dokany()
+void *cygfuse_dokany_init()
 {
     return 0; /* Replace this with legitimate code. */
 }

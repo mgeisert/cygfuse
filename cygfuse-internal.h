@@ -41,8 +41,8 @@
 #define DOKANY                          "Dokany"
 
 /* Add FUSE implementation initializers here. */
-void *cygfuse_init_winfsp();
-void *cygfuse_init_dokany();
+void *cygfuse_winfsp_init();
+void *cygfuse_dokany_init();
 
 void cygfuse_init(int force);
 void cygfuse_fail(const char *fmt, ...);

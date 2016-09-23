@@ -90,7 +90,7 @@ static inline int cygfuse_daemon(int nochdir, int noclose)
     if (0 == (*(void **)&(pfn_ ## n) = dlsym(h, #n)))\
         return 0;
 
-void *cygfuse_init_winfsp()
+void *cygfuse_winfsp_init()
 {
     void *h;
 
