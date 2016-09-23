@@ -110,6 +110,30 @@ CYGFUSE_API_IMPL(struct fuse_session *, fuse_get_session,
     (struct fuse *f),
     (f))
 
+/* fuse_opt.h */
+CYGFUSE_API_IMPL(int, fuse_opt_parse,
+    (struct fuse_args *args, void *data,
+        const struct fuse_opt opts[], fuse_opt_proc_t proc),
+    (args, data, opts, proc))
+CYGFUSE_API_IMPL(int, fuse_opt_add_arg,
+    (struct fuse_args *args, const char *arg),
+    (args, arg))
+CYGFUSE_API_IMPL(int, fuse_opt_insert_arg,
+    (struct fuse_args *args, int pos, const char *arg),
+    (args, pos, arg))
+CYGFUSE_API_IMPL(void, fuse_opt_free_args,
+    (struct fuse_args *args),
+    (args))
+CYGFUSE_API_IMPL(int, fuse_opt_add_opt,
+    (char **opts, const char *opt),
+    (opts, opt))
+CYGFUSE_API_IMPL(int, fuse_opt_add_opt_escaped,
+    (char **opts, const char *opt),
+    (opts, opt))
+CYGFUSE_API_IMPL(int, fuse_opt_match,
+    (const struct fuse_opt opts[], const char *opt),
+    (opts, opt))
+
 static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
 static char *fuse_variant = NULL;

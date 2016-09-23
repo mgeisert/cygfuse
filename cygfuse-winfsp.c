@@ -112,6 +112,30 @@ CYGFUSE_API_IMPL_DEF(struct fuse_session *, fuse_get_session,
     (struct fuse *f),
     { return (struct fuse_session *)f; })
 
+/* fuse_opt.h */
+CYGFUSE_API_IMPL(int, fuse_opt_parse,
+    (struct fuse_args *args, void *data,
+        const struct fuse_opt opts[], fuse_opt_proc_t proc),
+    (args, data, opts, proc))
+CYGFUSE_API_IMPL(int, fuse_opt_add_arg,
+    (struct fuse_args *args, const char *arg),
+    (args, arg))
+CYGFUSE_API_IMPL(int, fuse_opt_insert_arg,
+    (struct fuse_args *args, int pos, const char *arg),
+    (args, pos, arg))
+CYGFUSE_API_IMPL(void, fuse_opt_free_args,
+    (struct fuse_args *args),
+    (args))
+CYGFUSE_API_IMPL(int, fuse_opt_add_opt,
+    (char **opts, const char *opt),
+    (opts, opt))
+CYGFUSE_API_IMPL(int, fuse_opt_add_opt_escaped,
+    (char **opts, const char *opt),
+    (opts, opt))
+CYGFUSE_API_IMPL(int, fuse_opt_match,
+    (const struct fuse_opt opts[], const char *opt),
+    (opts, opt))
+
 #if defined(__LP64__)
 #define CYGFUSE_WINFSP_NAME             "winfsp-x64.dll"
 #else
@@ -225,13 +249,13 @@ void *cygfuse_winfsp_init()
     CYGFUSE_API_GET_NS(fuse_get_session);
 
     /* fuse_opt.h */
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_parse);
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_add_arg);
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_insert_arg);
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_free_args);
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_add_opt);
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_add_opt_escaped);
-    //CYGFUSE_API_GET(h, fsp_fuse_opt_match);
+    CYGFUSE_API_GET(h, fuse_opt_parse);
+    CYGFUSE_API_GET(h, fuse_opt_add_arg);
+    CYGFUSE_API_GET(h, fuse_opt_insert_arg);
+    CYGFUSE_API_GET(h, fuse_opt_free_args);
+    CYGFUSE_API_GET(h, fuse_opt_add_opt);
+    CYGFUSE_API_GET(h, fuse_opt_add_opt_escaped);
+    CYGFUSE_API_GET(h, fuse_opt_match);
 
     return h;
 }
