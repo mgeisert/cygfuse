@@ -178,13 +178,18 @@ static char *fuse_variant = NULL;
 
 void cygfuse_init(int force)
 {
-    fuse_variant = getenv("CYGFUSE");
-    if (!fuse_variant)
-        cygfuse_fail("cygfuse: environment variable CYGFUSE is not set\n");
-
+    /*
+     * Expensive lock is ok, because cygfuse_init calls will be eliminated
+     * soon by our "trampoline" code. This is only to protect against
+     * concurrent initialization.
+     */
     pthread_mutex_lock(&cygfuse_mutex);
     if (force || 0 == cygfuse_handle)
     {
+        fuse_variant = getenv("CYGFUSE");
+        if (!fuse_variant)
+            cygfuse_fail("cygfuse: environment variable CYGFUSE is not set\n");
+
         /* Add call to additional FUSE implementation initializers here. */
         if (0 == strncasecmp(fuse_variant, WINFSP, strlen(WINFSP)))
             cygfuse_handle = cygfuse_winfsp_init();
