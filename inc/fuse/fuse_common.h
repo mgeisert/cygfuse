@@ -101,25 +101,9 @@ void fuse_unmount(const char *mountpoint, struct fuse_chan *ch);
 int fuse_parse_cmdline(struct fuse_args *args,
     char **mountpoint, int *multithreaded, int *foreground);
 void fuse_pollhandle_destroy(struct fuse_pollhandle *ph);
-
-FSP_FUSE_SYM(
-int fuse_daemonize(int foreground),
-{
-    return fsp_fuse_daemonize(foreground);
-})
-
-FSP_FUSE_SYM(
-int fuse_set_signal_handlers(struct fuse_session *se),
-{
-    return fsp_fuse_set_signal_handlers(se);
-})
-
-FSP_FUSE_SYM(
-void fuse_remove_signal_handlers(struct fuse_session *se),
-{
-    (void)se;
-    fsp_fuse_set_signal_handlers(0);
-})
+int fuse_daemonize(int foreground);
+int fuse_set_signal_handlers(struct fuse_session *se);
+void fuse_remove_signal_handlers(struct fuse_session *se);
 
 #ifdef __cplusplus
 }

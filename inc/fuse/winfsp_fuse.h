@@ -188,24 +188,6 @@ struct fuse_flock
     fuse_pid_t l_pid;
 };
 
-#if defined(WINFSP_DLL_INTERNAL)
-#define FSP_FUSE_ENV_INIT               \
-    {                                   \
-        'W',                            \
-        MemAlloc, MemFree,              \
-        fsp_fuse_daemonize,             \
-        fsp_fuse_set_signal_handlers,   \
-    }
-#else
-#define FSP_FUSE_ENV_INIT               \
-    {                                   \
-        'W',                            \
-        malloc, free,                   \
-        fsp_fuse_daemonize,             \
-        fsp_fuse_set_signal_handlers,   \
-    }
-#endif
-
 #elif defined(__CYGWIN__)
 
 #include <fcntl.h>
@@ -238,14 +220,6 @@ struct fuse_flock
 #define fuse_statvfs                    statvfs
 #define fuse_flock                      flock
 
-#define FSP_FUSE_ENV_INIT               \
-    {                                   \
-        'C',                            \
-        malloc, free,                   \
-        fsp_fuse_daemonize,             \
-        fsp_fuse_set_signal_handlers,   \
-    }
-
 /*
  * Note that long is 8 bytes long in Cygwin64 and 4 bytes long in Win64.
  * For this reason we avoid using long anywhere in these headers.
@@ -254,126 +228,6 @@ struct fuse_flock
 #else
 #error unsupported environment
 #endif
-
-struct fsp_fuse_env
-{
-    unsigned environment;
-    void *(*memalloc)(size_t);
-    void (*memfree)(void *);
-    int (*daemonize)(int);
-    int (*set_signal_handlers)(void *);
-    void (*reserved[4])();
-};
-
-FSP_FUSE_API void FSP_FUSE_API_NAME(fsp_fuse_signal_handler)(int sig);
-
-#if defined(_WIN64) || defined(_WIN32)
-
-static inline int fsp_fuse_daemonize(int foreground)
-{
-    (void)foreground;
-    return 0;
-}
-
-static inline int fsp_fuse_set_signal_handlers(void *se)
-{
-    (void)se;
-    return 0;
-}
-
-#elif defined(__CYGWIN__)
-
-static inline int fsp_fuse_daemonize(int foreground)
-{
-    int daemon(int nochdir, int noclose);
-    int chdir(const char *path);
-
-    if (!foreground)
-    {
-        if (-1 == daemon(0, 0))
-            return -1;
-    }
-    else
-        chdir("/");
-
-    return 0;
-}
-
-static inline void *fsp_fuse_signal_thread(void *psigmask)
-{
-    int sig;
-
-    if (0 == sigwait((sigset_t *)psigmask, &sig))
-        FSP_FUSE_API_CALL(fsp_fuse_signal_handler)(sig);
-
-    return 0;
-}
-
-static inline int fsp_fuse_set_signal_handlers(void *se)
-{
-#define FSP_FUSE_SET_SIGNAL_HANDLER(sig, newha)\
-    if (-1 != sigaction((sig), 0, &oldsa) &&\
-        oldsa.sa_handler == (se ? SIG_DFL : (newha)))\
-    {\
-        newsa.sa_handler = se ? (newha) : SIG_DFL;\
-        sigaction((sig), &newsa, 0);\
-    }
-#define FSP_FUSE_SIGADDSET(sig)\
-    if (-1 != sigaction((sig), 0, &oldsa) &&\
-        oldsa.sa_handler == SIG_DFL)\
-        sigaddset(&sigmask, (sig));
-
-    static sigset_t sigmask;
-    static pthread_t sigthr;
-    struct sigaction oldsa, newsa = { 0 };
-
-    if (0 != se)
-    {
-        if (0 == sigthr)
-        {
-            FSP_FUSE_SET_SIGNAL_HANDLER(SIGPIPE, SIG_IGN);
-
-            sigemptyset(&sigmask);
-            FSP_FUSE_SIGADDSET(SIGHUP);
-            FSP_FUSE_SIGADDSET(SIGINT);
-            FSP_FUSE_SIGADDSET(SIGTERM);
-            if (0 != pthread_sigmask(SIG_BLOCK, &sigmask, 0))
-                return -1;
-
-            if (0 != pthread_create(&sigthr, 0, fsp_fuse_signal_thread, &sigmask))
-                return -1;
-        }
-    }
-    else
-    {
-        if (0 != sigthr)
-        {
-            pthread_cancel(sigthr);
-            pthread_join(sigthr, 0);
-            sigthr = 0;
-
-            if (0 != pthread_sigmask(SIG_UNBLOCK, &sigmask, 0))
-                return -1;
-            sigemptyset(&sigmask);
-
-            FSP_FUSE_SET_SIGNAL_HANDLER(SIGPIPE, SIG_IGN);
-        }
-    }
-
-    return 0;
-
-#undef FSP_FUSE_SIGADDSET
-#undef FSP_FUSE_SET_SIGNAL_HANDLER
-}
-
-#endif
-
-
-static inline struct fsp_fuse_env *fsp_fuse_env(void)
-{
-    static struct fsp_fuse_env env = FSP_FUSE_ENV_INIT;
-    return &env;
-}
 
 #ifdef __cplusplus
 }

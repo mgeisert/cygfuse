@@ -67,6 +67,15 @@ CYGFUSE_API_IMPL(int, fuse_parse_cmdline,
 CYGFUSE_API_IMPL(void, fuse_pollhandle_destroy,
     (struct fuse_pollhandle *ph),
     (ph))
+CYGFUSE_API_IMPL(int, fuse_daemonize,
+    (int foreground),
+    (foreground))
+CYGFUSE_API_IMPL(int, fuse_set_signal_handlers,
+    (struct fuse_session *se),
+    (se))
+CYGFUSE_API_IMPL(void, fuse_remove_signal_handlers,
+    (struct fuse_session *se),
+    (se))
 
 /* fuse.h */
 CYGFUSE_API_IMPL(int, fuse_main_real,
