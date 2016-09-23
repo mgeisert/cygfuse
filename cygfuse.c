@@ -199,6 +199,8 @@ void cygfuse_init(int force)
     {
         fuse_provider = getenv("CYGFUSE");
         if (!fuse_provider)
+            //FIXME if provider existence was testable, need not fail here...
+            //FIXME for example if only one provider exists, could use it.
             cygfuse_fail("cygfuse: environment variable CYGFUSE is not set\n");
 
         for (int i = 0; i < num_providers; i++)
