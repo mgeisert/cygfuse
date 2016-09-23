@@ -47,8 +47,44 @@
 
 #include "cygfuse-internal.h"
 
-static int fsp_fuse_daemonize(int foreground);
-static int fsp_fuse_set_signal_handlers_impl(void *se);
+/* WinFsp DLL name/path */
+#if defined(__LP64__)
+#define WINFSP_NAME                     "winfsp-x64.dll"
+#else
+#define WINFSP_NAME                     "winfsp-x86.dll"
+#endif
+#define WINFSP_PATH                     "bin\\" WINFSP_NAME
+
+/* FSP_FUSE_API_IMPL* macros: they (mainly) forward calls to the WinFsp DLL */
+#define REMOVE_PARENS(...)              __VA_ARGS__
+#define FSP_FUSE_API_IMPL_DEF(RET, API, PARAMS, ...)\
+    static RET fsp_ ## API PARAMS __VA_ARGS__\
+    extern RET (*pfn_ ## API) PARAMS;
+#define FSP_FUSE_API_IMPL(RET, API, PARAMS, ARGS)\
+    static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env, REMOVE_PARENS PARAMS);\
+    FSP_FUSE_API_IMPL_DEF(RET, API, PARAMS, { return pfn_fsp_ ## API (&fsp_fuse_env, REMOVE_PARENS ARGS); })
+#define FSP_FUSE_API_IMPL_VOID(RET, API)\
+    static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env);\
+    FSP_FUSE_API_IMPL_DEF(RET, API, (void), { return pfn_fsp_ ## API (&fsp_fuse_env); })
+
+/* FSP_FUSE_API_INIT* macros: they dlsym symbols from the WinFsp DLL */
+#define FSP_FUSE_API_INIT(h, n)\
+    if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
+        return 0;\
+    else\
+        pfn_ ## n = fsp_ ## n
+#define FSP_FUSE_API_INIT_DLSYM(h, n)\
+    if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
+        return 0;
+#define FSP_FUSE_API_INIT_NOSYM(n)\
+    pfn_ ## n = fsp_ ## n
+
+/*
+ * The WinFsp-FUSE environment.
+ *
+ * This captures important information for the WinFsp DLL,
+ * like the Cygwin malloc/free, etc.
+ */
 
 #define FSP_FUSE_ENV_INIT               \
     {                                   \
@@ -57,16 +93,39 @@ static int fsp_fuse_set_signal_handlers_impl(void *se);
         fsp_fuse_daemonize,             \
         fsp_fuse_set_signal_handlers_impl,\
     }
+
 struct fsp_fuse_env
 {
-    unsigned environment;
-    void *(*memalloc)(size_t);
-    void (*memfree)(void *);
-    int (*daemonize)(int);
-    int (*set_signal_handlers)(void *);
+    unsigned environment;               /* 'C' for Cygwin, 'W' for Windows */
+    void *(*memalloc)(size_t);          /* the local malloc */
+    void (*memfree)(void *);            /* the local free */
+    int (*daemonize)(int);              /* how to daemonize */
+    int (*set_signal_handlers)(void *); /* how to set/reset signal handlers */
     void (*reserved[4])();
 };
+
+static int fsp_fuse_daemonize(int foreground);
+static int fsp_fuse_set_signal_handlers_impl(void *se);
+
 static struct fsp_fuse_env fsp_fuse_env = FSP_FUSE_ENV_INIT;
+
+
+/*
+ * Signal handling.
+ *
+ * Cygwin supports POSIX signals and we can simply set up signal handlers
+ * similar to what libfuse does. However this simple approach does not work
+ * within WinFsp, because it uses native API’s that Cygwin cannot interrupt
+ * with its signal mechanism. For example, the fuse_loop FUSE call eventually
+ * results in a WaitForSingleObject API call that Cygwin cannot interrupt.
+ * Even trying with an alertable WaitForSingleObjectEx did not work as
+ * unfortunately Cygwin does not issue a QueueUserAPC when issuing a signal.
+ * So we need an alternative mechanism to support signals.
+ *
+ * The alternative is to use sigwait in a separate thread.
+ * Fsp_fuse_signal_handler is a WinFsp API that knows how to interrupt that
+ * WaitForSingleObject (actually it just signals the waited event).
+ */
 
 static void (*pfn_fsp_fuse_signal_handler)(int sig);
 static void *fsp_fuse_signal_thread(void *psigmask)
@@ -136,16 +195,13 @@ static int fsp_fuse_set_signal_handlers_impl(void *se)
 #undef FSP_FUSE_SET_SIGNAL_HANDLER
 }
 
-#define REMOVE_PARENS(...)              __VA_ARGS__
-#define FSP_FUSE_API_IMPL_DEF(RET, API, PARAMS, ...)\
-    static RET fsp_ ## API PARAMS __VA_ARGS__\
-    extern RET (*pfn_ ## API) PARAMS;
-#define FSP_FUSE_API_IMPL(RET, API, PARAMS, ARGS)\
-    static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env, REMOVE_PARENS PARAMS);\
-    FSP_FUSE_API_IMPL_DEF(RET, API, PARAMS, { return pfn_fsp_ ## API (&fsp_fuse_env, REMOVE_PARENS ARGS); })
-#define FSP_FUSE_API_IMPL_VOID(RET, API)\
-    static RET (*pfn_fsp_ ## API) (struct fsp_fuse_env *env);\
-    FSP_FUSE_API_IMPL_DEF(RET, API, (void), { return pfn_fsp_ ## API (&fsp_fuse_env); })
+
+/*
+ * FUSE API implementation.
+ *
+ * Most of the time we defer to the WinFsp DLL, but we also handle some things
+ * ourselves (daemonization, signals).
+ */
 
 /* fuse_common.h */
 FSP_FUSE_API_IMPL_VOID(int, fuse_version)
@@ -271,23 +327,10 @@ FSP_FUSE_API_IMPL(int, fuse_opt_match,
     (const struct fuse_opt opts[], const char *opt),
     (opts, opt))
 
-#if defined(__LP64__)
-#define WINFSP_NAME                     "winfsp-x64.dll"
-#else
-#define WINFSP_NAME                     "winfsp-x86.dll"
-#endif
-#define WINFSP_PATH                     "bin\\" WINFSP_NAME
 
-#define FSP_FUSE_API_INIT(h, n)\
-    if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
-        return 0;\
-    else\
-        pfn_ ## n = fsp_ ## n
-#define FSP_FUSE_API_INIT_DLSYM(h, n)\
-    if (0 == (*(void **)&(pfn_fsp_ ## n) = dlsym(h, "fsp_" #n)))\
-        return 0;
-#define FSP_FUSE_API_INIT_NOSYM(n)\
-    pfn_ ## n = fsp_ ## n
+/*
+ * WinFsp-FUSE initializaation.
+ */
 
 void *cygfuse_winfsp_init()
 {
