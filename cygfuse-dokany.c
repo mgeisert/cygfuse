@@ -1,5 +1,5 @@
 /**
- * @file cygfuse/cygfuse.c
+ * @file cygfuse/cygfuse-dokany.c
  *
  * @copyright 2015-2016 Bill Zissimopoulos
  */
@@ -36,50 +36,9 @@
  * Modified 2016 by Mark Geisert, designated cygfuse maintainer.
  */
 
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "cygfuse-internal.h"
 
-static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
-static void *cygfuse_handle = 0;
-static char *fuse_variant = NULL;
-
-/* Add short names of supported FUSE implementations here. */
-#define WINFSP  "WinFSP"
-#define DOKANY  "Dokany"
-
-void cygfuse_init(int force)
+void *cygfuse_init_dokany()
 {
-    fuse_variant = getenv("CYGFUSE");
-
-    if (!fuse_variant)
-    {
-        fprintf(stderr, "cygfuse: environment variable CYGFUSE is not set\n");
-        exit(1);
-    }
-
-    pthread_mutex_lock(&cygfuse_mutex);
-    if (force || 0 == cygfuse_handle)
-    {
-        /* Add call to additional FUSE implementation initializers here. */
-        if (0 == strncasecmp(fuse_variant, WINFSP, strlen(WINFSP)))
-            cygfuse_handle = cygfuse_init_winfsp();
-        else if (0 == strncasecmp(fuse_variant, DOKANY, strlen(DOKANY)))
-            cygfuse_handle = cygfuse_init_dokany();
-
-        if (0 == cygfuse_handle)
-            cygfuse_init_fail();
-    }
-    pthread_mutex_unlock(&cygfuse_mutex);
-}
-
-void *cygfuse_init_fail()
-{
-    fprintf(stderr, "cygfuse: %s FUSE DLL initialization failed.\n",
-            fuse_variant);
-    exit(1);
-    return 0;
+    return 0; /* Replace this with legitimate code. */
 }
