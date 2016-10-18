@@ -1,9 +1,5 @@
 /**
- * @file fuse/fuse_opt.h
- *
- * This file is derived from libfuse/include/fuse_opt.h:
- *     FUSE: Filesystem in Userspace
- *     Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+ * @file fuse/cygfuse.h
  *
  * @copyright 2015-2016 Bill Zissimopoulos
  */
@@ -37,48 +33,59 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FUSE_OPT_H_
-#define FUSE_OPT_H_
+#ifndef CYGFUSE_H_
+#define CYGFUSE_H_
+
+/* include here all headers that libfuse2.8:fuse.h,fuse_common.h include */
+#include <fcntl.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <time.h>
+#include <utime.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define FUSE_OPT_KEY(templ, key)        { templ, -1, key }
-#define FUSE_OPT_END                    { NULL, 0, 0 }
+/*
+ * FUSE uses a number of types (notably: struct stat) that are OS specific.
+ * Furthermore there are sometimes multiple definitions of the same type even
+ * within the same OS. This is certainly true on Windows, where these types
+ * are not even native.
+ *
+ * For this reason we will define our own fuse_* types to be compatible with
+ * the equivalent Cygwin types.
+ */
 
-#define FUSE_OPT_KEY_OPT                -1
-#define FUSE_OPT_KEY_NONOPT             -2
-#define FUSE_OPT_KEY_KEEP               -3
-#define FUSE_OPT_KEY_DISCARD            -4
+#define fuse_uid_t                      uid_t
+#define fuse_gid_t                      gid_t
+#define fuse_pid_t                      pid_t
 
-#define FUSE_ARGS_INIT(argc, argv)      { argc, argv, 0 }
+#define fuse_dev_t                      dev_t
+#define fuse_ino_t                      ino_t
+#define fuse_mode_t                     mode_t
+#define fuse_nlink_t                    nlink_t
+#define fuse_off_t                      off_t
 
-struct fuse_opt
-{
-	const char *templ;
-	unsigned int offset;
-	int value;
-};
+#define fuse_fsblkcnt_t                 fsblkcnt_t
+#define fuse_fsfilcnt_t                 fsfilcnt_t
+#define fuse_blksize_t                  blksize_t
+#define fuse_blkcnt_t                   blkcnt_t
 
-struct fuse_args
-{
-	int argc;
-	char **argv;
-	int allocated;
-};
+#define fuse_utimbuf                    utimbuf
+#define fuse_timespec                   timespec
 
-typedef int (*fuse_opt_proc_t)(void *data, const char *arg, int key,
-    struct fuse_args *outargs);
+#define fuse_stat                       stat
+#define fuse_statvfs                    statvfs
+#define fuse_flock                      flock
 
-int fuse_opt_parse(struct fuse_args *args, void *data,
-    const struct fuse_opt opts[], fuse_opt_proc_t proc);
-int fuse_opt_add_arg(struct fuse_args *args, const char *arg);
-int fuse_opt_insert_arg(struct fuse_args *args, int pos, const char *arg);
-void fuse_opt_free_args(struct fuse_args *args);
-int fuse_opt_add_opt(char **opts, const char *opt);
-int fuse_opt_add_opt_escaped(char **opts, const char *opt);
-int fuse_opt_match(const struct fuse_opt opts[], const char *opt);
+/*
+ * Note that long is 8 bytes long in Cygwin64 and 4 bytes long in Win64.
+ * For this reason we avoid using long anywhere in these headers.
+ */
 
 #ifdef __cplusplus
 }

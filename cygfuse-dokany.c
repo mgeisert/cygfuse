@@ -1,9 +1,5 @@
 /**
- * @file fuse/fuse_opt.h
- *
- * This file is derived from libfuse/include/fuse_opt.h:
- *     FUSE: Filesystem in Userspace
- *     Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+ * @file cygfuse/cygfuse-dokany.c
  *
  * @copyright 2015-2016 Bill Zissimopoulos
  */
@@ -36,52 +32,13 @@
  * (INCLUDING NEGLIGENCE  OR OTHERWISE) ARISING IN  ANY WAY OUT OF  THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*
+ * Modified 2016 by Mark Geisert, designated cygfuse maintainer.
+ */
 
-#ifndef FUSE_OPT_H_
-#define FUSE_OPT_H_
+#include "cygfuse-internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define FUSE_OPT_KEY(templ, key)        { templ, -1, key }
-#define FUSE_OPT_END                    { NULL, 0, 0 }
-
-#define FUSE_OPT_KEY_OPT                -1
-#define FUSE_OPT_KEY_NONOPT             -2
-#define FUSE_OPT_KEY_KEEP               -3
-#define FUSE_OPT_KEY_DISCARD            -4
-
-#define FUSE_ARGS_INIT(argc, argv)      { argc, argv, 0 }
-
-struct fuse_opt
+void *cygfuse_dokany_init()
 {
-	const char *templ;
-	unsigned int offset;
-	int value;
-};
-
-struct fuse_args
-{
-	int argc;
-	char **argv;
-	int allocated;
-};
-
-typedef int (*fuse_opt_proc_t)(void *data, const char *arg, int key,
-    struct fuse_args *outargs);
-
-int fuse_opt_parse(struct fuse_args *args, void *data,
-    const struct fuse_opt opts[], fuse_opt_proc_t proc);
-int fuse_opt_add_arg(struct fuse_args *args, const char *arg);
-int fuse_opt_insert_arg(struct fuse_args *args, int pos, const char *arg);
-void fuse_opt_free_args(struct fuse_args *args);
-int fuse_opt_add_opt(char **opts, const char *opt);
-int fuse_opt_add_opt_escaped(char **opts, const char *opt);
-int fuse_opt_match(const struct fuse_opt opts[], const char *opt);
-
-#ifdef __cplusplus
+    return 0; /* Replace this with legitimate code. */
 }
-#endif
-
-#endif

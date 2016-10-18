@@ -4,8 +4,8 @@ Arch = $(shell uname -m)
 IncDir = ./inc/fuse
 Debug = -g
 
-cygfuse-$(Version).dll libfuse-$(Version).dll.a fuse.pc: cygfuse.c fuse.pc.in
-	gcc $(Debug) -shared -o cygfuse-$(Version).dll -Wl,--out-implib=libfuse-$(Version).dll.a -I$(IncDir) cygfuse.c
+cygfuse-$(Version).dll libfuse-$(Version).dll.a fuse.pc: cygfuse.c cygfuse-winfsp.c cygfuse-dokany.c fuse.pc.in
+	gcc $(Debug) -shared -o cygfuse-$(Version).dll -Wl,--out-implib=libfuse-$(Version).dll.a -I$(IncDir) cygfuse.c cygfuse-winfsp.c cygfuse-dokany.c
 	sed "s/@Version@/$(Version)/g" fuse.pc.in > fuse.pc
 
 cygfuse-test: cygfuse-test.c cygfuse-$(Version).dll libfuse-$(Version).dll.a

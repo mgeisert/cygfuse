@@ -1,6 +1,5 @@
 /**
  * @file fuse/fuse_common.h
- * WinFsp FUSE compatible API.
  *
  * This file is derived from libfuse/include/fuse_common.h:
  *     FUSE: Filesystem in Userspace
@@ -41,7 +40,7 @@
 #ifndef FUSE_COMMON_H_
 #define FUSE_COMMON_H_
 
-#include "winfsp_fuse.h"
+#include "cygfuse.h"
 #include "fuse_opt.h"
 
 #ifdef __cplusplus
@@ -95,70 +94,15 @@ struct fuse_session;
 struct fuse_chan;
 struct fuse_pollhandle;
 
-FSP_FUSE_API int FSP_FUSE_API_NAME(fsp_fuse_version)(struct fsp_fuse_env *env);
-FSP_FUSE_API struct fuse_chan *FSP_FUSE_API_NAME(fsp_fuse_mount)(struct fsp_fuse_env *env,
-    const char *mountpoint, struct fuse_args *args);
-FSP_FUSE_API void FSP_FUSE_API_NAME(fsp_fuse_unmount)(struct fsp_fuse_env *env,
-    const char *mountpoint, struct fuse_chan *ch);
-FSP_FUSE_API int FSP_FUSE_API_NAME(fsp_fuse_parse_cmdline)(struct fsp_fuse_env *env,
-    struct fuse_args *args,
-    char **mountpoint, int *multithreaded, int *foreground);
-FSP_FUSE_API int32_t FSP_FUSE_API_NAME(fsp_fuse_ntstatus_from_errno)(struct fsp_fuse_env *env,
-    int err);
-
-FSP_FUSE_SYM(
-int fuse_version(void),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_version)
-        (fsp_fuse_env());
-})
-
-FSP_FUSE_SYM(
-struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_mount)
-        (fsp_fuse_env(), mountpoint, args);
-})
-
-FSP_FUSE_SYM(
-void fuse_unmount(const char *mountpoint, struct fuse_chan *ch),
-{
-    FSP_FUSE_API_CALL(fsp_fuse_unmount)
-        (fsp_fuse_env(), mountpoint, ch);
-})
-
-FSP_FUSE_SYM(
+int fuse_version(void);
+struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args);
+void fuse_unmount(const char *mountpoint, struct fuse_chan *ch);
 int fuse_parse_cmdline(struct fuse_args *args,
-    char **mountpoint, int *multithreaded, int *foreground),
-{
-    return FSP_FUSE_API_CALL(fsp_fuse_parse_cmdline)
-        (fsp_fuse_env(), args, mountpoint, multithreaded, foreground);
-})
-
-FSP_FUSE_SYM(
-void fuse_pollhandle_destroy(struct fuse_pollhandle *ph),
-{
-    (void)ph;
-})
-
-FSP_FUSE_SYM(
-int fuse_daemonize(int foreground),
-{
-    return fsp_fuse_daemonize(foreground);
-})
-
-FSP_FUSE_SYM(
-int fuse_set_signal_handlers(struct fuse_session *se),
-{
-    return fsp_fuse_set_signal_handlers(se);
-})
-
-FSP_FUSE_SYM(
-void fuse_remove_signal_handlers(struct fuse_session *se),
-{
-    (void)se;
-    fsp_fuse_set_signal_handlers(0);
-})
+    char **mountpoint, int *multithreaded, int *foreground);
+void fuse_pollhandle_destroy(struct fuse_pollhandle *ph);
+int fuse_daemonize(int foreground);
+int fuse_set_signal_handlers(struct fuse_session *se);
+void fuse_remove_signal_handlers(struct fuse_session *se);
 
 #ifdef __cplusplus
 }

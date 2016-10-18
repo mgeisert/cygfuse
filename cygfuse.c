@@ -36,189 +36,194 @@
  * Modified 2016 by Mark Geisert, designated cygfuse maintainer.
  */
 
-#include <dlfcn.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/cygwin.h>
 
-static void *cygfuse_init_winfsp();
-static void *cygfuse_init_dokany();
-/* Add FUSE provider initializer names above this line. */
+#include "cygfuse-internal.h"
 
-static void *cygfuse_init_fail();
+
+/*
+ * FUSE API implementation.
+ *
+ * We use a "trampoline" idea where all FUSE API calls get forwarded to the
+ * appropriate implementation through a function pointer. This function
+ * pointer is set up to point to a default implementation when the program
+ * first starts. The default implementation calls cygfuse_init and then goes
+ * back and calls the corresponding function pointer again. The expectation
+ * is that cygfuse_init has set up things properly so that the function
+ * pointer now points to the real FUSE API implementation.
+ *
+ * Subsequent calls to a FUSE API will now see a pointer to the real FUSE API
+ * implementation and will circumvent calls to cygfuse_init.
+ */
+
+/* CYGFUSE_API_IMPL* macros: they forward calls to a specific FUSE impl */
+#define CYGFUSE_API_IMPL(RET, API, PARAMS, ARGS)\
+    static RET dfl_ ## API PARAMS;\
+    RET (*pfn_ ## API) PARAMS = dfl_ ## API;\
+    static RET dfl_ ## API PARAMS\
+    {\
+        cygfuse_init(0);\
+        if (dfl_ ## API == pfn_ ## API)\
+            cygfuse_fail("cygfuse: %s FUSE API initialization failed.\n",\
+                #API);\
+        return pfn_ ## API ARGS;\
+    }\
+    __attribute__ ((visibility("default"))) RET API PARAMS { return pfn_ ## API ARGS; }
+
+/* fuse_common.h */
+CYGFUSE_API_IMPL(int, fuse_version,
+    (void),
+    ())
+CYGFUSE_API_IMPL(struct fuse_chan *, fuse_mount,
+    (const char *mountpoint, struct fuse_args *args),
+    (mountpoint, args))
+CYGFUSE_API_IMPL(void, fuse_unmount,
+    (const char *mountpoint, struct fuse_chan *ch),
+    (mountpoint, ch))
+CYGFUSE_API_IMPL(int, fuse_parse_cmdline,
+    (struct fuse_args *args,
+        char **mountpoint, int *multithreaded, int *foreground),
+    (args, mountpoint, multithreaded, foreground))
+CYGFUSE_API_IMPL(void, fuse_pollhandle_destroy,
+    (struct fuse_pollhandle *ph),
+    (ph))
+CYGFUSE_API_IMPL(int, fuse_daemonize,
+    (int foreground),
+    (foreground))
+CYGFUSE_API_IMPL(int, fuse_set_signal_handlers,
+    (struct fuse_session *se),
+    (se))
+CYGFUSE_API_IMPL(void, fuse_remove_signal_handlers,
+    (struct fuse_session *se),
+    (se))
+
+/* fuse.h */
+CYGFUSE_API_IMPL(int, fuse_main_real,
+    (int argc, char *argv[], const struct fuse_operations *ops, size_t opsize, void *data),
+    (argc, argv, ops, opsize, data))
+CYGFUSE_API_IMPL(int, fuse_is_lib_option,
+    (const char *opt),
+    (opt))
+CYGFUSE_API_IMPL(struct fuse *, fuse_new,
+    (struct fuse_chan *ch, struct fuse_args *args,
+        const struct fuse_operations *ops, size_t opsize, void *data),
+    (ch, args, ops, opsize, data))
+CYGFUSE_API_IMPL(void, fuse_destroy,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(int, fuse_loop,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(int, fuse_loop_mt,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(void, fuse_exit,
+    (struct fuse *f),
+    (f))
+CYGFUSE_API_IMPL(struct fuse_context *, fuse_get_context,
+    (void),
+    ())
+CYGFUSE_API_IMPL(int, fuse_getgroups,
+    (int size, fuse_gid_t list[]),
+    (size, list))
+CYGFUSE_API_IMPL(int, fuse_interrupted,
+    (void),
+    ())
+CYGFUSE_API_IMPL(int, fuse_invalidate,
+    (struct fuse *f, const char *path),
+    (f, path))
+CYGFUSE_API_IMPL(int, fuse_notify_poll,
+    (struct fuse_pollhandle *ph),
+    (ph))
+CYGFUSE_API_IMPL(struct fuse_session *, fuse_get_session,
+    (struct fuse *f),
+    (f))
+
+/* fuse_opt.h */
+CYGFUSE_API_IMPL(int, fuse_opt_parse,
+    (struct fuse_args *args, void *data,
+        const struct fuse_opt opts[], fuse_opt_proc_t proc),
+    (args, data, opts, proc))
+CYGFUSE_API_IMPL(int, fuse_opt_add_arg,
+    (struct fuse_args *args, const char *arg),
+    (args, arg))
+CYGFUSE_API_IMPL(int, fuse_opt_insert_arg,
+    (struct fuse_args *args, int pos, const char *arg),
+    (args, pos, arg))
+CYGFUSE_API_IMPL(void, fuse_opt_free_args,
+    (struct fuse_args *args),
+    (args))
+CYGFUSE_API_IMPL(int, fuse_opt_add_opt,
+    (char **opts, const char *opt),
+    (opts, opt))
+CYGFUSE_API_IMPL(int, fuse_opt_add_opt_escaped,
+    (char **opts, const char *opt),
+    (opts, opt))
+CYGFUSE_API_IMPL(int, fuse_opt_match,
+    (const struct fuse_opt opts[], const char *opt),
+    (opts, opt))
+
+
+/*
+ * Cygfuse init/fail.
+ */
 
 static pthread_mutex_t cygfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *cygfuse_handle = 0;
 static char *fuse_provider = NULL;
 
 struct provider_t {
-    char	*name;
-    void	*(*initializer)();
+    char    *name;
+    void    *(*initializer)();
 } providers[] = {
-    {"WinFSP",	cygfuse_init_winfsp},
-    {"Dokany",	cygfuse_init_dokany},
+    {"WinFSP",  cygfuse_winfsp_init},
+    {"Dokany",  cygfuse_dokany_init},
 /* Add descriptions of supported FUSE providers above this line. */
 };
 
 static int num_providers = sizeof(providers) / sizeof(providers[0]);
 
-static inline void cygfuse_init(int force)
+void cygfuse_init(int force)
 {
-    fuse_provider = getenv("CYGFUSE");
-
-    if (!fuse_provider)
-    {
-	//FIXME if provider existence was testable, need not fail here...
-	//FIXME for example if only one provider exists, could use it.
-        fprintf(stderr, "cygfuse: environment variable CYGFUSE is not set\n");
-        exit(1);
-    }
-
+    /*
+     * Expensive lock is ok, because cygfuse_init calls will be eliminated
+     * soon by our "trampoline" code. This is only to protect against
+     * concurrent initialization.
+     */
     pthread_mutex_lock(&cygfuse_mutex);
     if (force || 0 == cygfuse_handle)
     {
-	for (int i = 0; i < num_providers; i++)
-	    if (0 == strncasecmp(fuse_provider,
-				 providers[i].name, sizeof(providers[i].name)))
-	    {
-		cygfuse_handle = providers[i].initializer();
-		break;
-	    }
+        fuse_provider = getenv("CYGFUSE");
+        if (!fuse_provider)
+            //FIXME if provider existence was testable, need not fail here...
+            //FIXME for example if only one provider exists, could use it.
+            cygfuse_fail("cygfuse: environment variable CYGFUSE is not set\n");
+
+        for (int i = 0; i < num_providers; i++)
+            if (0 == strncasecmp(fuse_provider,
+                     providers[i].name, sizeof(providers[i].name)))
+            {
+                cygfuse_handle = providers[i].initializer();
+                break;
+            }
+
+        if (0 == cygfuse_handle)
+            cygfuse_fail("cygfuse: %s FUSE DLL initialization failed.\n",
+                fuse_provider);
     }
     pthread_mutex_unlock(&cygfuse_mutex);
-
-    if (0 == cygfuse_handle)
-        cygfuse_init_fail();
 }
 
-/*
- * Unfortunately Cygwin fork is very fragile and cannot even correctly
- * handle dlopen'ed DLL's if they are native (rather than Cygwin ones).
- * [MG: Cygwin doesn't expect non-Cygwin DLLs to be present in the process
- * address space.  That's likely just a design consequence but could
- * arguably be considered a bug.  A fix would depend on the bug being
- * reported to the main Cygwin mailing list.]
- *
- * So we have this very nasty hack where we reset the dlopen'ed handle
- * immediately after daemonization. This will force cygfuse_init() to
- * reload the WinFsp DLL and reset all API pointers in the daemonized
- * process.
- * [MG: pthread_atfork() could be used for child reinitialization after
- * fork().  No pthreads need be involved to use this API.  This is how
- * Cygwin apps deal with the situation.]
- */
-static inline int cygfuse_daemon(int nochdir, int noclose)
+void cygfuse_fail(const char *fmt, ...)
 {
-    if (-1 == daemon(nochdir, noclose))
-        return -1;
+    va_list ap;
 
-    /* force reload of FUSE provider DLL to workaround fork() problems */
-    cygfuse_init(1);
-
-    return 0;
-}
-#define daemon                          cygfuse_daemon
-
-#define FSP_FUSE_API                    static
-#define FSP_FUSE_API_NAME(api)          (* pfn_ ## api)
-#define FSP_FUSE_API_CALL(api)          (cygfuse_init(0), pfn_ ## api)
-#define FSP_FUSE_SYM(proto, ...)        \
-    __attribute__ ((visibility("default"))) proto { __VA_ARGS__ }
-#include <fuse_common.h>
-#include <fuse.h>
-#include <fuse_opt.h>
-
-#if defined(__LP64__)
-#define CYGFUSE_WINFSP_NAME             "winfsp-x64.dll"
-#else
-#define CYGFUSE_WINFSP_NAME             "winfsp-x86.dll"
-#endif
-
-#define CYGFUSE_WINFSP_PATH             "bin\\" CYGFUSE_WINFSP_NAME
-#define CYGFUSE_GET_API(h, n)           \
-    if (0 == (*(void **)&(pfn_ ## n) = dlsym(h, #n)))\
-        return cygfuse_init_fail();
-
-static void *cygfuse_init_winfsp()
-{
-    void *h;
-
-    h = dlopen(CYGFUSE_WINFSP_NAME, RTLD_NOW);
-    if (0 == h)
-    {
-        char winpath[260], *psxpath;
-        int regfd, bytes;
-
-        regfd = open("/proc/registry32/HKEY_LOCAL_MACHINE"
-                     "/Software/WinFsp/InstallDir", O_RDONLY);
-        if (-1 == regfd)
-            return cygfuse_init_fail();
-
-        bytes = read(regfd, winpath,
-                     sizeof winpath - sizeof CYGFUSE_WINFSP_PATH);
-        close(regfd);
-        if (-1 == bytes || 0 == bytes)
-            return cygfuse_init_fail();
-
-        if ('\0' == winpath[bytes - 1])
-            bytes--;
-        memcpy(winpath + bytes,
-               CYGFUSE_WINFSP_PATH, sizeof CYGFUSE_WINFSP_PATH);
-
-        psxpath = (char *)
-            cygwin_create_path(CCP_WIN_A_TO_POSIX | CCP_PROC_CYGDRIVE, winpath);
-        if (0 == psxpath)
-            return cygfuse_init_fail();
-
-        h = dlopen(psxpath, RTLD_NOW);
-        free(psxpath);
-        if (0 == h)
-            return cygfuse_init_fail();
-    }
-
-    /* winfsp_fuse.h */
-    CYGFUSE_GET_API(h, fsp_fuse_signal_handler);
-
-    /* fuse_common.h */
-    CYGFUSE_GET_API(h, fsp_fuse_version);
-    CYGFUSE_GET_API(h, fsp_fuse_mount);
-    CYGFUSE_GET_API(h, fsp_fuse_unmount);
-    CYGFUSE_GET_API(h, fsp_fuse_parse_cmdline);
-    CYGFUSE_GET_API(h, fsp_fuse_ntstatus_from_errno);
-
-    /* fuse.h */
-    CYGFUSE_GET_API(h, fsp_fuse_main_real);
-    CYGFUSE_GET_API(h, fsp_fuse_is_lib_option);
-    CYGFUSE_GET_API(h, fsp_fuse_new);
-    CYGFUSE_GET_API(h, fsp_fuse_destroy);
-    CYGFUSE_GET_API(h, fsp_fuse_loop);
-    CYGFUSE_GET_API(h, fsp_fuse_loop_mt);
-    CYGFUSE_GET_API(h, fsp_fuse_exit);
-    CYGFUSE_GET_API(h, fsp_fuse_get_context);
-
-    /* fuse_opt.h */
-    CYGFUSE_GET_API(h, fsp_fuse_opt_parse);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_add_arg);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_insert_arg);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_free_args);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_add_opt);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_add_opt_escaped);
-    CYGFUSE_GET_API(h, fsp_fuse_opt_match);
-
-    return h;
-}
-
-static void *cygfuse_init_dokany()
-{
-    return 0; /* Replace this with legitimate code. */
-}
-
-static void *cygfuse_init_fail()
-{
-    fprintf(stderr, "cygfuse: %s FUSE DLL initialization failed\n",
-            fuse_provider);
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
     exit(1);
 }
