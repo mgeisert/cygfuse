@@ -1,0 +1,9 @@
+PREFIX=/usr
+INCDIR=${PREFIX}/include/fuse3
+
+Name: fuse
+Description: Cygwin interface to Windows FUSE providers
+VERSION: @VERSION@
+URL: https://github.com/mgeisert/cygfuse
+Libs: -lfuse-@VERSION@
+Cflags: -I"${INCDIR}" -DCYGFUSE

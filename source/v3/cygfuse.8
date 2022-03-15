@@ -1,0 +1,38 @@
+.TH CYGFUSE 8 2022\-02\-26 3.2.0 "Cygwin interface to FUSE providers"
+
+.SH NAME
+\fBcygfuse\fR - Cygwin interface to Windows FUSE providers
+
+.SH SYNOPSIS
+\fBcygfuse\fR
+
+.SH DESCRIPTION
+Filesystem in Userspace (FUSE) is a simple interface for user
+programs to export a virtual filesystem to Cygwin. It also aims
+to provide a secure method for non-privileged users to create
+and mount their own filesystem implementations.
+.PP
+\fBCygfuse\fR supplies an emulation of Linux libfuse/libfuse3.
+It allows FUSE clients such as sshfs, memfs, ftpfs, etc to
+make use of certain FUSE providers implemented for Windows.
+.PP
+At this time WinFSP is the only Windows FUSE provider supported.
+
+.SH OPTIONS
+(TBD remove this section)
+
+.SH SEE ALSO
+\fIfusermount(1)\rR,
+\fImount(1)\fR
+
+.SH HOMEPAGE
+More information about cygfuse can be
+found at <\fIhttps://github.com/mgeisert/cygfuse\fR>.
+.PP
+Information about WinFSP can be found at <\fIhttp://www.secfs.net/winfsp\fR>.
+
+.SH AUTHORS
+\fBcygfuse\fR was created by Bill Zissimopoulos <\fIbillziss@navimatics.com\fR>
+and offered as a Cygwin add-on in his WinFSP product.
+.PP
+Its Cygwin package maintainer is Mark A. Geisert <\fImark@maxrnd.com\fR>.
