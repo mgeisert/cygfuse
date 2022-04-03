@@ -12,8 +12,8 @@ make use of certain FUSE providers implemented for Windows.
 **cygfuse** was originally a Cygwin add-on to **WinFSP** provided by
 the author of **WinFSP**, Bill Zissimopoulos. It is still available
 in that form from _source/v1_historical_ or any **WinFSP** release.
-There will soon be a standard Cygwin package of **cygfuse**
-available via Cygwin's setup.exe.
+A standard Cygwin package of **cygfuse** is available via Cygwin's
+setup.exe. See _https://cygwin.com_ for general setup details.
 
 At this time **WinFSP** is the only Windows FUSE provider supported.
 Information about **WinFSP** can be found at _http://www.secfs.net/winfsp_.
