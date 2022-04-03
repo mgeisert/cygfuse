@@ -1,6 +1,6 @@
 #!/bin/dash
 # An emulation of Linux fusermount{,3} for Cygwin
-# 2022/03/05 Mark A. Geisert <mark@maxrnd.com>
+# 2022/03/28 Mark A. Geisert <mark@maxrnd.com>
 
 myname=`basename $0`
 fuseversion=2
@@ -57,7 +57,7 @@ do
 	mntopts="$1"
 	case "$mntopts" in
 	-*)
-	    echo "$myname: follow option '-o' with /bin/mount options"
+	    echo "$myname: follow option -o with /bin/mount options"
 	    exit 1
 	esac
 	;;
@@ -72,7 +72,7 @@ do
 	uflag=1
 	;;
     -* | -o*)
-	echo "$myname: option '$1' not known"
+	echo "$myname: option $1 not known"
 	echo
 	show_usage
 	exit 1
@@ -83,14 +83,14 @@ do
 	    break
 	fi
 	if [ X"$win32path" != X ]; then
-	    echo "$myname: multiple win32paths '$win32path' and '$1' no bueno"
+	    echo "$myname: multiple win32paths $win32path and $1 no bueno"
 	    exit 1
 	fi
 	win32path="$1"
 	;;
     *)
 	if [ X"$mntpoint" != X ]; then
-	    echo "$myname: multiple mountpoints '$mntpoint' and '$1' no bueno"
+	    echo "$myname: multiple mountpoints $mntpoint and $1 no bueno"
 	    exit 1
 	fi
 	mntpoint="$1"
@@ -112,7 +112,7 @@ if [ X"$mntpoint" = X ]; then
     echo "$myname: no mountpoint given"
     exit 1
 elif [ -e $mntpoint -a X"$uflag" = X0 ]; then
-    echo "$myname: mountpoint '$mntpoint' already exists"
+    echo "$myname: mountpoint $mntpoint already exists"
     exit 1
 fi
 
@@ -135,7 +135,7 @@ if [ X"$MNTENT" = X ]; then
 	MNTENT=`grep -ai "$mntpoint " /var/run/fuse.mounts`
     fi
     if [ X"$MNTENT" = X ]; then
-	echo "$myname: mountpoint '$mntpoint' doesn't exist"
+	echo "$myname: mountpoint $mntpoint doesn't exist"
 	exit 1
     fi
 fi
@@ -158,7 +158,7 @@ case $MTYPE in
 fuse | [1-9]*)
     HPROC=`grep -ai $DRIVE /var/run/fuse.mounts | cut -d' ' -f 3`
     if [ ! -e /proc/$HPROC ]; then
-	echo "$myname: mountpoint '$mntpoint' doesn't exist"
+	echo "$myname: mountpoint $mntpoint doesn't exist"
 	exit 1
     fi
     ;;
@@ -175,7 +175,7 @@ winfsp*)
     ;;
 esac
 if [ X"$HPROC" = X ]; then
-    echo "$myname: can't find hosting process for mountpoint '$mntpoint'"
+    echo "$myname: can't find hosting process for mountpoint $mntpoint"
     exit 1
 fi
 
@@ -190,15 +190,15 @@ if [ X"$zflag" = X0 ]; then
     `cygpath $WINDIR/System32/taskkill` /f /pid $HPROC 2>&1 >/dev/null
     rc=$?
     if [ X"$qflag" = X0 -a X"$rc" = X0 ]; then
-	echo "$myname: '$mntpoint' unmounted"
+	echo "$myname: $mntpoint unmounted"
     fi
     if [ X"$rc" != X0 ]; then
-	echo "$myname: '$mntpoint' still mounted"
+	echo "$myname: $mntpoint still mounted"
     fi
 else
     # nothing to do here.. mount goes away when hosting process exits
     if [ X"$qflag" = X0 ]; then
-	echo "$myname: '$mntpoint' lazily unmounted"
+	echo "$myname: $mntpoint lazily unmounted"
     fi
 fi
 exit $rc

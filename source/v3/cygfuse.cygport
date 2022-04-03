@@ -1,24 +1,24 @@
 # cygfuse.cygport - directions for packaging cygfuse for Cygwin
-# 2022/03/09 Mark A. Geisert <mark@maxrnd.com>
+# 2022/03/28 Mark A. Geisert <mark@maxrnd.com>
 
-NAME="cygfuse"
+NAME=cygfuse
 VERSION=3.2.0
 RELEASE=1
 
-CATEGORY="Utils"
+CATEGORY=Utils
 SUMMARY="Cygwin interface to Windows FUSE providers"
 DESCRIPTION="Supplies Cygwin emulation of Linux libfuse/libfuse3. \
 Allows FUSE clients such as sshfs, memfs, ftpfs, etc \
 to make use of certain FUSE providers implemented for Windows. \
 At this time WinFSP is the only Windows FUSE provider supported."
+MESSAGE="Download installer for required WinFSP at https://winfsp.dev/rel/, \
+run it, choose Custom Setup, select Core (other features supplied by cygfuse)."
 
-HOMEPAGE="https://github.com/mgeisert/cygfuse"
-#SRC_URI="http://maxrnd.com/~mark/cygwin/x86_64/release/cygfuse/cygfuse-${PV}.tar.xz"
-#NOT YET: GIT_URI="https://github.com/mgeisert/cygfuse.git"
-#NOT YET: GIT_TAG="v$VERSION"
-#NOT YET:	inherit git
+HOMEPAGE=https://github.com/mgeisert/cygfuse
+SRC_URI=http://maxrnd.com/~mark/cygwin/x86_64/release/cygfuse/cygfuse-${PV}-${PR}-src.tar.xz
+SRC_DIR="."
 
-PKG_NAMES="cygfuse"
+PKG_NAMES=cygfuse
 cygfuse_CONTENTS="
     usr/bin/*
     usr/include/fuse/*
@@ -29,18 +29,12 @@ cygfuse_CONTENTS="
 "
 
 # take over these activities from cygport..
-_CYGPORT_RESTRICT_strip_=1
+RESTRICT=strip
 
 src_compile()
 {
-    # fix source tree glitch.. (maybe 'prep' stumbling or bad tarfile layout?)
-    if [ -e ${S}/src ]; then
-	mv ${S}/src/cygfuse ${S}
-	rmdir ${S}/src
-    fi
-
-    # and on with the show..
-    cd ${S}
+    # on with the show..
+    cd ${S}/cygfuse
     lndirs
 
     # compile emulation of Linux libfuse..
@@ -93,7 +87,7 @@ src_install()
     mkdir -p ${D}/usr/src/debug/cygfuse-${PV}
     mkdir -p ${D}/usr/src/debug/cygfuse-${PV}/fuse
     mkdir -p ${D}/usr/src/debug/cygfuse-${PV}/fuse3
-    cd ${S}/cygfuse
+    cd ${B}/cygfuse
     cp -p fuse/*.[ch] ${D}/usr/src/debug/cygfuse-${PV}/fuse
     cp -p fuse3/*.[ch] ${D}/usr/src/debug/cygfuse-${PV}/fuse3
 
@@ -110,7 +104,7 @@ src_install()
     touch ${T}/.dbgsrc.out
 
     # install documentation files..
-    cd ${S}/cygfuse
+    cd ${B}/cygfuse
     doman cygfuse.8
     doman fusermount.1
 
