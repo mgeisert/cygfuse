@@ -1,0 +1,89 @@
+# cygfuse.cygport - directions for packaging cygfuse for Cygwin
+# 2022/03/28 Mark A. Geisert <mark@maxrnd.com>
+
+NAME=cygfuse
+VERSION=2.8.0
+RELEASE=1
+
+CATEGORY=Utils
+SUMMARY="Cygwin interface to Windows FUSE providers"
+DESCRIPTION="Supplies Cygwin emulation of Linux libfuse. \
+Allows FUSE clients such as sshfs, memfs, ftpfs, etc \
+to make use of certain FUSE providers implemented for Windows. \
+At this time WinFSP is the only Windows FUSE provider supported."
+MESSAGE="Download installer for required WinFSP at https://winfsp.dev/rel/, \
+run it, choose Custom Setup, select Core (other features supplied by cygfuse)."
+
+HOMEPAGE=https://github.com/mgeisert/cygfuse
+SRC_URI=http://maxrnd.com/~mark/cygwin/x86_64/release/cygfuse/cygfuse-${PV}-${PR}-src.tar.xz
+SRC_DIR="."
+
+PKG_NAMES=cygfuse
+cygfuse_CONTENTS="
+    usr/bin/*
+    usr/include/fuse/*
+    usr/lib/*
+    usr/share/man/man1/*
+    usr/share/man/man8/*
+"
+
+# take over these activities from cygport..
+RESTRICT=strip
+
+src_compile()
+{
+    # on with the show..
+    cd ${S}/cygfuse
+    lndirs
+
+    # compile emulation of Linux libfuse..
+    mkdir -p ${B}/cygfuse/fuse
+    cd ${B}/cygfuse/fuse
+    cygmake
+}
+
+src_install()
+{
+    # install emulation of Linux fusermount..
+    cd ${B}/cygfuse
+    dobin fusermount
+
+    # install emulation of Linux libfuse..
+    cd ${B}/cygfuse/fuse
+    dobin cygfuse-2.8.dll
+    strip ${D}/usr/bin/cygfuse-2.8.dll
+    dolib libfuse-2.8.dll.a
+    dosym libfuse-2.8.dll.a /usr/lib/libfuse.dll.a
+    dopkgconfig fuse.pc
+
+    includeinto fuse
+    doinclude fuse.h
+    doinclude fuse_common.h
+    doinclude fuse_opt.h
+    doinclude winfsp_fuse.h
+
+    # install debuginfo files..
+    mkdir -p ${D}/usr/src/debug/cygfuse-${PV}
+    mkdir -p ${D}/usr/src/debug/cygfuse-${PV}/fuse
+    cd ${B}/cygfuse
+    cp -p fuse/*.[ch] ${D}/usr/src/debug/cygfuse-${PV}/fuse
+
+    # install unstripped .dbg files..
+    mkdir -p ${D}/usr/lib/debug/usr/bin
+    cd ${B}/cygfuse
+    cp -p fuse/*.dbg ${D}/usr/lib/debug/usr/bin
+
+    # something about the above makes cygport's __prepdebugsrc complain:
+    #    sort: cannot read: /usr/src/cygfuse-3/cygfuse-3.2.0-1.<arch>/ \
+    #        temp/.dbgsrc.out: No such file or directory
+    # so head that off with the following..
+    touch ${T}/.dbgsrc.out
+
+    # install documentation files..
+    cd ${B}/cygfuse
+    doman cygfuse.8
+    doman fusermount.1
+
+    # init source package directory.. (seems to be necessary)
+    mkdir -p ${B}/../spkg/${NAME}-${VERSION}-${RELEASE}.src
+}

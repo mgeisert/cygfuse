@@ -1,0 +1,55 @@
+.TH FUSERMOUNT 1 2022\-02\-26 3.2.0 "Filesystem in Userspace (FUSE)"
+
+.SH NAME
+\fBfusermount\fR - mount and unmount FUSE filesystems
+
+.SH SYNOPSIS
+\fBfusermount\fR [\fIOPTIONS\fR] [\fIWIN32PATH\fR] \fIMOUNTPOINT\fR
+
+.SH DESCRIPTION
+Filesystem in Userspace (FUSE) is a simple interface for user
+programs to export a virtual filesystem to Cygwin. It also aims
+to provide a secure method for non-privileged users to create
+and mount their own filesystem implementations.
+.PP
+\fBfusermount\fR is a program to mount and unmount FUSE filesystems.
+It should be called directly only for unmounting FUSE filesystems.
+To allow mounting and unmounting by unprivileged users, \fBfusermount\fR
+needs to be installed setuid root.
+
+.SH OPTIONS
+.IP "-h" 4
+print help.
+.IP "-V" 4
+print version.
+.IP "-o \fIOPTION\fR[,\fIOPTION\fR...]" 4
+mount options.
+.IP "-u" 4
+unmount.
+.IP "-q" 4
+quiet.
+.IP "-z" 4
+lazy unmount (works even if resource is still busy).
+
+.SH ARGUMENTS
+.IP "WIN32PATH," 0
+an existing directory as in \fIC:/FOO\fR or \fI//SERVER/DIRNAME\fR.
+.IP "MOUNTPOINT," 0
+a new (nonexistent) local directory name.
+
+.SH SEE ALSO
+\fIcygfuse(8)\fR,
+\fImount(1)\fR
+
+.SH HOMEPAGE
+More information about fusermount and the FUSE project can be
+found at <\fIhttps://github.com/libfuse\fR>.
+
+.SH AUTHORS
+FUSE is currently maintained by Nikolaus Rath <\fINikolaus@rath.org\fR>.
+.PP
+The original author of FUSE is Miklos Szeredi <\fImiklos@szeredi.hu\fR>.
+.PP
+This manual page was originally written by Daniel Baumann
+<\fIdaniel.baumann@progress-technologies.net\fR>. Adapted for Cygwin by
+Mark A. Geisert <\fImark@maxrnd.com\fR>.

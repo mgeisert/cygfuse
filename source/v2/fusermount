@@ -1,0 +1,206 @@
+#!/bin/dash
+# An emulation of Linux fusermount{,3} for Cygwin
+# 2022/03/28 Mark A. Geisert <mark@maxrnd.com>
+
+myname=`basename $0`
+fuseversion=2
+mntopts=""
+mntpoint=""
+win32path=""
+qflag=0
+uflag=0
+zflag=0
+rc=0
+
+show_usage() {
+    echo "Usage: $myname [OPTIONS] [WIN32PATH] MOUNTPOINT"
+    echo "OPTIONS: -h    print help"
+    echo "         -V    print version"
+    echo "         -o opt,...  specify /bin/mount options"
+    echo "         -u    unmount"
+    echo "         -q    quiet"
+    echo "         -z    lazy unmount"
+    echo "WIN32PATH: an existing directory as in C:/DIR or //USER@HOST/DIR"
+    echo "MOUNTPOINT: a new (nonexistent) local directory name"
+}
+
+show_help() {
+    echo "$myname mounts and unmounts FUSE filesystems"
+    show_usage
+}
+
+show_version() {
+    if [ X"$fuseversion" = X2 ]; then
+	echo "version 2.8.0"
+    else
+	echo "version 3.2.0"
+    fi
+}
+
+case "$myname" in
+*3) fuseversion=3
+esac
+
+while [ X"$1" != X ]
+do
+    case "$1" in
+    -h)
+	show_help
+	exit 0
+	;;
+    -V)
+	show_version
+	exit 0
+	;;
+    -o)
+	shift
+	mntopts="$1"
+	case "$mntopts" in
+	-*)
+	    echo "$myname: follow option -o with /bin/mount options"
+	    exit 1
+	esac
+	;;
+    -u)
+	uflag=1
+	;;
+    -q)
+	qflag=1
+	;;
+    -z)
+	zflag=1
+	uflag=1
+	;;
+    -* | -o*)
+	echo "$myname: option $1 not known"
+	echo
+	show_usage
+	exit 1
+	;;
+    [A-Za-z]:* | //*)
+	if [ X"$uflag" = X1 ]; then
+	    mntpoint="$1"
+	    break
+	fi
+	if [ X"$win32path" != X ]; then
+	    echo "$myname: multiple win32paths $win32path and $1 no bueno"
+	    exit 1
+	fi
+	win32path="$1"
+	;;
+    *)
+	if [ X"$mntpoint" != X ]; then
+	    echo "$myname: multiple mountpoints $mntpoint and $1 no bueno"
+	    exit 1
+	fi
+	mntpoint="$1"
+	;;
+    esac
+    shift
+done
+
+# uncomment these for debugging
+#echo "fuseversion: $fuseversion"
+#echo "mntopts: $mntopts"
+#echo "mntpoint: $mntpoint"
+#echo "win32path: $win32path"
+#echo "qflag: $qflag"
+#echo "uflag: $uflag"
+#echo "zflag: $zflag"
+
+if [ X"$mntpoint" = X ]; then
+    echo "$myname: no mountpoint given"
+    exit 1
+elif [ -e $mntpoint -a X"$uflag" = X0 ]; then
+    echo "$myname: mountpoint $mntpoint already exists"
+    exit 1
+fi
+
+if [ X"$uflag" = X0 ]; then
+    if [ X"$win32path" = X ]; then
+	echo "$myname: no win32path given"
+	exit 1
+    fi
+    if [ X"$qflag" = X0 ]; then
+	echo "$myname: this is a mount operation"
+    fi
+    echo "$myname: mount should be done by a FUSE app, e.g. sshfs, memfs, etc"
+    exit 1
+fi
+
+# make sure given mountpoint is currently mounted
+MNTENT=`grep " $mntpoint " /etc/mtab`
+if [ X"$MNTENT" = X ]; then
+    if [ -e /var/run/fuse.mounts ]; then
+	MNTENT=`grep -ai "$mntpoint " /var/run/fuse.mounts`
+    fi
+    if [ X"$MNTENT" = X ]; then
+	echo "$myname: mountpoint $mntpoint doesn't exist"
+	exit 1
+    fi
+fi
+
+# hand off standard Cygwin unmounts to /bin/umount
+MTYPE=`echo $MNTENT | cut -d' ' -f 3`
+case $MTYPE in
+fuse | winfsp* | [1-9]*)
+    break
+    ;;
+*)
+    /bin/umount $mntpoint
+    exit $?
+    ;;
+esac
+
+# determine hosting process for given mountpoint
+DRIVE=`echo $MNTENT | cut -d' ' -f 1`
+case $MTYPE in
+fuse | [1-9]*)
+    HPROC=`grep -ai $DRIVE /var/run/fuse.mounts | cut -d' ' -f 3`
+    if [ ! -e /proc/$HPROC ]; then
+	echo "$myname: mountpoint $mntpoint doesn't exist"
+	exit 1
+    fi
+    ;;
+winfsp*)
+    MTYPE=`echo $MTYPE | sed 's/winfsp-//'`
+    HPROCS=`grep -ail "$MTYPE.*$DRIVE" /proc/*/cmdline | grep -v "self"`
+    for HPROC in $HPROCS
+    do
+	if [ -e $HPROC ]; then
+    	HPROC=`echo $HPROC | cut -d/ -f 3`
+    	break
+	fi
+    done
+    ;;
+esac
+if [ X"$HPROC" = X ]; then
+    echo "$myname: can't find hosting process for mountpoint $mntpoint"
+    exit 1
+fi
+
+if [ X"$mntopts" != X ]; then
+    echo "$myname: /bin/mount options ignored for unmount"
+    mntopts=""
+fi
+if [ X"$zflag" = X0 ]; then
+    # send SIGINT to hosting process <-- doesn't work; no signal does
+    # convert HPROC to Windows process number and kill it that way
+    HPROC=`cat /proc/$HPROC/winpid`
+    `cygpath $WINDIR/System32/taskkill` /f /pid $HPROC 2>&1 >/dev/null
+    rc=$?
+    if [ X"$qflag" = X0 -a X"$rc" = X0 ]; then
+	echo "$myname: $mntpoint unmounted"
+    fi
+    if [ X"$rc" != X0 ]; then
+	echo "$myname: $mntpoint still mounted"
+    fi
+else
+    # nothing to do here.. mount goes away when hosting process exits
+    if [ X"$qflag" = X0 ]; then
+	echo "$myname: $mntpoint lazily unmounted"
+    fi
+fi
+exit $rc
+
+# vim: set syntax=sh:
