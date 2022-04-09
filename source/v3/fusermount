@@ -1,6 +1,6 @@
 #!/bin/dash
 # An emulation of Linux fusermount{,3} for Cygwin
-# 2022/03/28 Mark A. Geisert <mark@maxrnd.com>
+# 2022/04/08 Mark A. Geisert <mark@maxrnd.com>
 
 myname=`basename $0`
 fuseversion=2
